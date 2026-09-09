@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    font-family: 'Sarabun', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+.low-stock-row {
+  background-color: #fefce8;
+  border-left: 4px solid #eab308;
+}
+
+.borrowed-row {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
