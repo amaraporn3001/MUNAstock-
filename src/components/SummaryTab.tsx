@@ -13,8 +13,9 @@ import {
   BarChart2,
   Plus,
   Minus,
-  Bed,
+  User,
   Info,
+  Download,
 } from 'lucide-react';
 
 interface SummaryTabProps {
@@ -24,6 +25,7 @@ interface SummaryTabProps {
   selectedPerson: string;
   onSelectPerson: (person: string) => void;
   onQuickAction: (person: string, itemName: string, type: 'receive' | 'withdraw') => void;
+  onOpenExport?: () => void;
 }
 
 export const SummaryTab: React.FC<SummaryTabProps> = ({
@@ -33,6 +35,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
   selectedPerson,
   onSelectPerson,
   onQuickAction,
+  onOpenExport,
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'low' | 'borrowed'>('all');
 
@@ -169,21 +172,21 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
   }, [summaryData.itemsList, filterMode]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-2.5 sm:space-y-3">
       {/* Top Controls: Bed selector & quick status chips */}
-      <div className="bg-white rounded-2xl p-5 shadow-xs border border-purple-100 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+      <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-100 space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              เลือกเตียงที่ต้องการดูสรุปสต็อก <span className="text-rose-500">*</span>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              เลือกผู้ป่วยที่ต้องการดูสรุปสต็อก <span className="text-rose-500">*</span>
             </label>
             <select
               id="sum-person"
               value={selectedPerson}
               onChange={(e) => onSelectPerson(e.target.value)}
-              className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium"
+              className="w-full border border-purple-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium"
             >
-              <option value="">-- เลือกเตียง --</option>
+              <option value="">-- เลือกชื่อผู้ป่วย --</option>
               {persons.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -194,15 +197,15 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
 
           {/* Quick ward alert metrics */}
           <div className="flex gap-2">
-            <div className="flex-1 bg-rose-50 border border-rose-100 rounded-xl p-2.5 text-center">
-              <span className="text-[11px] font-semibold text-rose-700 block">ยืมแผนก</span>
-              <span className="text-lg font-bold text-rose-900 leading-tight">
+            <div className="flex-1 bg-rose-50 border border-rose-100 rounded-xl p-1.5 sm:p-2 text-center">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-rose-700 block">ยืมแผนก</span>
+              <span className="text-base sm:text-lg font-bold text-rose-900 leading-tight">
                 {wardStats.totalBorrowedCount}
               </span>
             </div>
-            <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-2.5 text-center">
-              <span className="text-[11px] font-semibold text-amber-700 block">ใกล้หมด</span>
-              <span className="text-lg font-bold text-amber-900 leading-tight">
+            <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-1.5 sm:p-2 text-center">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-amber-700 block">ใกล้หมด</span>
+              <span className="text-base sm:text-lg font-bold text-amber-900 leading-tight">
                 {wardStats.totalLowCount}
               </span>
             </div>
@@ -210,13 +213,13 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
         </div>
 
         {selectedPerson && (
-          <div className="flex items-center justify-between border-t border-purple-50 pt-3 flex-wrap gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-slate-500">กรองรายการ:</span>
+          <div className="flex items-center justify-between border-t border-purple-50 pt-1.5 flex-wrap gap-1.5">
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-xs font-semibold text-slate-500 mr-0.5">กรอง:</span>
               <button
                 type="button"
                 onClick={() => setFilterMode('all')}
-                className={`text-xs px-2.5 py-1 rounded-lg font-medium transition ${
+                className={`text-xs px-2 py-0.5 rounded-lg font-medium transition ${
                   filterMode === 'all'
                     ? 'bg-purple-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -227,18 +230,18 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('low')}
-                className={`text-xs px-2.5 py-1 rounded-lg font-medium transition ${
+                className={`text-xs px-2 py-0.5 rounded-lg font-medium transition ${
                   filterMode === 'low'
                     ? 'bg-amber-500 text-white'
                     : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
                 }`}
               >
-                ใกล้หมดสต็อก
+                ใกล้หมด
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMode('borrowed')}
-                className={`text-xs px-2.5 py-1 rounded-lg font-medium transition ${
+                className={`text-xs px-2 py-0.5 rounded-lg font-medium transition ${
                   filterMode === 'borrowed'
                     ? 'bg-rose-600 text-white'
                     : 'bg-rose-50 text-rose-800 hover:bg-rose-100'
@@ -248,37 +251,51 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               </button>
             </div>
 
-            <span className="text-xs text-slate-400">
-              กำลังแสดงข้อมูล: <strong className="text-purple-700">{selectedPerson}</strong>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 hidden sm:inline">
+                ผู้ป่วย: <strong className="text-purple-700">{selectedPerson}</strong>
+              </span>
+              {onOpenExport && (
+                <button
+                  type="button"
+                  id="btn-summary-export-csv"
+                  onClick={onOpenExport}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold border border-purple-200/80 transition"
+                  title="ส่งออกรายงานข้อมูลสต็อกเป็นไฟล์ CSV"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>ส่งออก CSV</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Stock Items List for Selected Bed */}
-      <div id="summary-list" className="space-y-2.5">
+      {/* Stock Items List for Selected Patient */}
+      <div id="summary-list" className="space-y-1.5">
         {!selectedPerson ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-purple-100 space-y-2">
-            <Bed className="w-10 h-10 text-purple-400 mx-auto" />
+          <div className="bg-white rounded-2xl p-8 text-center border border-purple-100 space-y-1.5">
+            <User className="w-8 h-8 text-purple-400 mx-auto" />
             <p className="text-sm font-semibold text-slate-700">
-              กรุณาเลือกเตียงด้านบนเพื่อดูยอดคงเหลือของใช้
+              กรุณาเลือกผู้ป่วยด้านบนเพื่อดูยอดคงเหลือของใช้
             </p>
             <p className="text-xs text-slate-400">
               ระบบจะคำนวณยอดรับเข้า-เบิกออก และแสดงสถานะเปิดใช้งานข้างเตียง/ยืมแผนกโดยอัตโนมัติ
             </p>
           </div>
         ) : displayedItems.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 text-center border border-purple-100">
-            <p className="text-sm text-slate-500 font-medium">ยังไม่มีข้อมูลของใช้สำหรับเตียงนี้</p>
-            <p className="text-xs text-slate-400 mt-1">
-              ไปที่แท็บ "คีย์ข้อมูล" เพื่อบันทึกรับเข้าของใช้สำหรับเตียงนี้ได้ทันที
+          <div className="bg-white rounded-2xl p-6 text-center border border-purple-100">
+            <p className="text-sm text-slate-500 font-medium">ยังไม่มีข้อมูลของใช้สำหรับผู้ป่วยรายนี้</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              ไปที่แท็บ "คีย์ข้อมูล" เพื่อบันทึกรับเข้าของใช้สำหรับผู้ป่วยรายนี้ได้ทันที
             </p>
           </div>
         ) : (
           displayedItems.map((item) => (
             <div
               key={item.name}
-              className={`rounded-2xl p-4 shadow-xs transition-all flex items-center justify-between gap-3 ${
+              className={`rounded-xl py-2 px-3 sm:py-2.5 sm:px-3.5 shadow-xs transition-all flex items-center justify-between gap-2.5 ${
                 item.isBorrowed
                   ? 'bg-rose-950 text-white border-l-4 border-rose-600 shadow-md'
                   : item.isLow
@@ -287,18 +304,18 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               }`}
             >
               {/* Item Info */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {item.isBorrowed && (
-                    <AlertTriangle className="w-4 h-4 text-rose-300 animate-pulse shrink-0" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-300 animate-pulse shrink-0" />
                   )}
                   {item.isLow && !item.isBorrowed && (
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   )}
 
-                  <span className="font-bold text-sm sm:text-base">{item.name}</span>
+                  <span className="font-bold text-xs sm:text-sm truncate">{item.name}</span>
                   <span
-                    className={`text-xs ${
+                    className={`text-[11px] ${
                       item.isBorrowed ? 'text-rose-200' : 'text-slate-400'
                     }`}
                   >
@@ -307,31 +324,31 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
 
                   {/* Badges */}
                   {item.isBorrowed && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-800 text-rose-100 border border-rose-700">
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-800 text-rose-100 border border-rose-700">
                       ยืมแผนก
                     </span>
                   )}
 
                   {item.isBedsideActive && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
                       กำลังเปิดใช้งานข้างเตียง
                     </span>
                   )}
 
                   {item.isLow && !item.isBorrowed && !item.isBedsideActive && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                      ใกล้หมด (เกณฑ์เตือน: {item.threshold})
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
+                      ใกล้หมด
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Quantity & Quick actions */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                 {/* Balance number */}
                 <div className="text-right">
                   <span
-                    className={`text-xl sm:text-2xl font-black ${
+                    className={`text-base sm:text-lg font-black leading-tight ${
                       item.isBorrowed
                         ? 'text-white'
                         : item.isLow
@@ -342,7 +359,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                     {item.quantity}
                   </span>
                   <span
-                    className={`text-xs block ${
+                    className={`text-[10px] block leading-none ${
                       item.isBorrowed ? 'text-rose-200' : 'text-slate-400'
                     }`}
                   >
@@ -351,14 +368,14 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                 </div>
 
                 {/* Quick Add/Withdraw buttons */}
-                <div className="flex items-center gap-1 pl-2 border-l border-slate-200/40">
+                <div className="flex items-center gap-1 pl-1.5 border-l border-slate-200/50">
                   <button
                     type="button"
                     onClick={() => onQuickAction(selectedPerson, item.name, 'receive')}
-                    className={`p-1.5 rounded-lg transition ${
+                    className={`p-1.5 rounded-lg transition min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-95 shadow-2xs ${
                       item.isBorrowed
                         ? 'bg-rose-800 text-white hover:bg-rose-700'
-                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        : 'bg-emerald-100/80 text-emerald-800 hover:bg-emerald-200'
                     }`}
                     title={`รับเข้า ${item.name}`}
                   >
@@ -367,10 +384,10 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                   <button
                     type="button"
                     onClick={() => onQuickAction(selectedPerson, item.name, 'withdraw')}
-                    className={`p-1.5 rounded-lg transition ${
+                    className={`p-1.5 rounded-lg transition min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-95 shadow-2xs ${
                       item.isBorrowed
                         ? 'bg-rose-800 text-white hover:bg-rose-700'
-                        : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                        : 'bg-rose-100/80 text-rose-800 hover:bg-rose-200'
                     }`}
                     title={`เบิกใช้ ${item.name}`}
                   >
@@ -387,69 +404,69 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
       {selectedPerson && (summaryData.diaperAvg || summaryData.underpadAvg) && (
         <div
           id="avg-section"
-          className="bg-white rounded-2xl p-5 shadow-xs border border-purple-100 space-y-3"
+          className="bg-white rounded-xl p-3 sm:p-3.5 shadow-xs border border-purple-100 space-y-2"
         >
-          <div className="flex items-center gap-2 text-purple-800 pb-2 border-b border-purple-50">
-            <BarChart2 className="w-5 h-5 text-purple-600" />
-            <h3 className="font-bold text-sm sm:text-base">
+          <div className="flex items-center gap-1.5 text-purple-800 pb-1.5 border-b border-purple-50">
+            <BarChart2 className="w-4 h-4 text-purple-600" />
+            <h3 className="font-bold text-xs sm:text-sm">
               📊 คำนวณอัตราเฉลี่ยการเบิกใช้ ({selectedPerson})
             </h3>
           </div>
 
-          <div id="avg-content" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div id="avg-content" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {/* Diapers */}
-            <div className="bg-purple-50/70 border border-purple-100 rounded-xl p-3.5 space-y-1.5">
+            <div className="bg-purple-50/70 border border-purple-100 rounded-lg p-2.5 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-purple-900 text-sm">แพมเพิส (ผู้ใหญ่)</span>
-                <span className="text-[11px] text-purple-600 bg-white px-2 py-0.5 rounded-full font-medium">
+                <span className="font-bold text-purple-900 text-xs">แพมเพิส (ผู้ใหญ่)</span>
+                <span className="text-[10px] text-purple-600 bg-white px-1.5 py-0.2 rounded-full font-medium">
                   เบิกไปแล้ว {summaryData.diaperAvg?.totalQty || 0} ชิ้น
                 </span>
               </div>
               {summaryData.diaperAvg ? (
-                <div className="text-xs text-slate-700 space-y-1">
+                <div className="text-xs text-slate-700 space-y-0.5">
                   <div className="flex items-baseline justify-between">
-                    <span>อัตราเฉลี่ยต่อวัน:</span>
-                    <span className="text-base font-bold text-purple-700">
-                      {summaryData.diaperAvg.avgDay} <span className="text-xs font-normal">ชิ้น/วัน</span>
+                    <span>เฉลี่ยต่อวัน:</span>
+                    <span className="text-sm font-bold text-purple-700">
+                      {summaryData.diaperAvg.avgDay} <span className="text-[11px] font-normal">ชิ้น/วัน</span>
                     </span>
                   </div>
-                  <div className="flex items-baseline justify-between border-t border-purple-100/80 pt-1">
-                    <span>ประมาณการ 30 วัน (1 เดือน):</span>
-                    <span className="text-sm font-bold text-purple-800">
+                  <div className="flex items-baseline justify-between border-t border-purple-100/80 pt-0.5">
+                    <span>ประมาณการ 30 วัน:</span>
+                    <span className="text-xs font-bold text-purple-800">
                       {summaryData.diaperAvg.avgMonth} ชิ้น/เดือน
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">ยังไม่มีประวัติการเบิกแพมเพิสสำหรับเตียงนี้</p>
+                <p className="text-[11px] text-slate-400">ยังไม่มีประวัติการเบิกแพมเพิส</p>
               )}
             </div>
 
             {/* Underpads */}
-            <div className="bg-purple-50/70 border border-purple-100 rounded-xl p-3.5 space-y-1.5">
+            <div className="bg-purple-50/70 border border-purple-100 rounded-lg p-2.5 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-purple-900 text-sm">แผ่นรองซับ (Underpads)</span>
-                <span className="text-[11px] text-purple-600 bg-white px-2 py-0.5 rounded-full font-medium">
+                <span className="font-bold text-purple-900 text-xs">แผ่นรองซับ (Underpads)</span>
+                <span className="text-[10px] text-purple-600 bg-white px-1.5 py-0.2 rounded-full font-medium">
                   เบิกไปแล้ว {summaryData.underpadAvg?.totalQty || 0} แผ่น
                 </span>
               </div>
               {summaryData.underpadAvg ? (
-                <div className="text-xs text-slate-700 space-y-1">
+                <div className="text-xs text-slate-700 space-y-0.5">
                   <div className="flex items-baseline justify-between">
-                    <span>อัตราเฉลี่ยต่อวัน:</span>
-                    <span className="text-base font-bold text-purple-700">
-                      {summaryData.underpadAvg.avgDay} <span className="text-xs font-normal">แผ่น/วัน</span>
+                    <span>เฉลี่ยต่อวัน:</span>
+                    <span className="text-sm font-bold text-purple-700">
+                      {summaryData.underpadAvg.avgDay} <span className="text-[11px] font-normal">แผ่น/วัน</span>
                     </span>
                   </div>
-                  <div className="flex items-baseline justify-between border-t border-purple-100/80 pt-1">
-                    <span>ประมาณการ 30 วัน (1 เดือน):</span>
-                    <span className="text-sm font-bold text-purple-800">
+                  <div className="flex items-baseline justify-between border-t border-purple-100/80 pt-0.5">
+                    <span>ประมาณการ 30 วัน:</span>
+                    <span className="text-xs font-bold text-purple-800">
                       {summaryData.underpadAvg.avgMonth} แผ่น/เดือน
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">ยังไม่มีประวัติการเบิกแผ่นรองซับสำหรับเตียงนี้</p>
+                <p className="text-[11px] text-slate-400">ยังไม่มีประวัติการเบิกแผ่นรองซับ</p>
               )}
             </div>
           </div>

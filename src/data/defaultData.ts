@@ -1,19 +1,7 @@
 import { ItemDefinition, StockRecord } from '../types';
 
-export const DEFAULT_PERSONS: string[] = [
-  'กิมกี',
-  'พุฒิพงษ์',
-  'สุมนา',
-  'สมจิตร',
-  'เชวง',
-  'ศรีอรุณ',
-  'เกลา',
-  'สุนันท์',
-  'อุดม',
-  'จำเริญ',
-  'จิณณ์ณิชา',
-  'สุคนธ์'
-];
+// Default patient list (starts clean)
+export const DEFAULT_PERSONS: string[] = [];
 
 export const DEFAULT_ITEMS: ItemDefinition[] = [
   { name: 'แพมเพิส', unit: 'ชิ้น', threshold: 20 },
@@ -65,110 +53,6 @@ export const PROCEDURE_CATEGORIES = [
   { id: 'injection', label: 'ฉีดยา (IV/IM/SC)', icon: 'Syringe' }
 ];
 
-// Initial realistic seed records for demonstration and immediate functionality
-export const INITIAL_SEED_RECORDS: StockRecord[] = [
-  {
-    id: 'seed-1',
-    person_name: 'กิมกี',
-    item_name: 'แพมเพิส',
-    item_unit: 'ชิ้น',
-    quantity: 30,
-    action_type: 'receive',
-    performed_by: 'พว. สมหญิง',
-    timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-2',
-    person_name: 'กิมกี',
-    item_name: 'แพมเพิส',
-    item_unit: 'ชิ้น',
-    quantity: 4,
-    action_type: 'withdraw',
-    performed_by: 'พว. สมหญิง',
-    timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-3',
-    person_name: 'กิมกี',
-    item_name: 'แพมเพิส',
-    item_unit: 'ชิ้น',
-    quantity: 5,
-    action_type: 'withdraw',
-    performed_by: 'ผช. วรพงษ์',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-4',
-    person_name: 'กิมกี',
-    item_name: 'แผ่นรองซับ',
-    item_unit: 'แผ่น',
-    quantity: 25,
-    action_type: 'receive',
-    performed_by: 'พว. สมหญิง',
-    timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-5',
-    person_name: 'กิมกี',
-    item_name: 'แผ่นรองซับ',
-    item_unit: 'แผ่น',
-    quantity: 3,
-    action_type: 'withdraw',
-    performed_by: 'ผช. วรพงษ์',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-6',
-    person_name: 'กิมกี',
-    item_name: 'ทิชชู่เปียก',
-    item_unit: 'ห่อ',
-    quantity: 1,
-    action_type: 'receive',
-    performed_by: 'พว. สมหญิง',
-    timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-7',
-    person_name: 'กิมกี',
-    item_name: 'ทิชชู่เปียก',
-    item_unit: 'ห่อ',
-    quantity: 1,
-    action_type: 'withdraw',
-    performed_by: 'ผช. วรพงษ์',
-    timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-8',
-    person_name: 'พุฒิพงษ์',
-    item_name: 'ถุงมือ',
-    item_unit: 'กล่อง',
-    quantity: 2,
-    action_type: 'withdraw',
-    performed_by: 'พว. รัตนา',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    record_type: 'transaction'
-  },
-  {
-    id: 'seed-9',
-    person_name: 'กิมกี',
-    item_name: 'ทำแผล',
-    item_unit: '',
-    quantity: 0,
-    action_type: 'procedure',
-    performed_by: 'พว. สมหญิง',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    record_type: 'procedure',
-    procedure_category: 'wound',
-    procedure_detail: 'แผลแห้ง x1',
-    wound_location: 'ก้นกบ (Sacrum)',
-    procedure_count: 1,
-    supplies_used: JSON.stringify({ 'Gauze ปลอดเชื้อ 3*3': 2, 'NSS 5ml': 1, 'Top gauze': 1 })
-  }
-];
+// Initial records (clean slate since all demo patients have been removed)
+export const INITIAL_SEED_RECORDS: StockRecord[] = [];
+

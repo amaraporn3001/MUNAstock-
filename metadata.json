@@ -1,6 +1,6 @@
 {
   "name": "Stock ของใช้ & หัตถการรายเตียง",
-  "description": "ระบบบันทึกและจัดการสต็อกของใช้และหัตถการรายเตียงผู้ป่วย หอผู้ป่วยผู้สูงอายุ (Aging Ward)",
+  "description": "ระบบบันทึกและจัดการสต็อกของใช้และหัตถการผู้ป่วย หอผู้ป่วยผู้สูงอายุ (Aging Ward)",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

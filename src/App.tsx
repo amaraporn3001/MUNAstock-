@@ -7,24 +7,60 @@ import {
 } from './data/defaultData';
 import { Header } from './components/Header';
 import { LoginModal } from './components/LoginModal';
+import { LoginPage } from './components/LoginPage';
+import { BottomNav } from './components/BottomNav';
 import { RecordTab } from './components/RecordTab';
 import { HistoryTab } from './components/HistoryTab';
 import { SummaryTab } from './components/SummaryTab';
 import { DeleteModal } from './components/DeleteModal';
 import { ManageModal } from './components/ManageModal';
+import { ExportModal } from './components/ExportModal';
+import {
+  subscribeToStockRecords,
+  saveRecordToFirestore,
+  deleteRecordFromFirestore,
+  seedInitialRecordsIfEmpty,
+  subscribeToItems,
+  saveItemsToFirestore,
+  subscribeToPersons,
+  savePersonToFirestore,
+  deletePersonFromFirestore,
+  saveAllPersonsToFirestore,
+  seedInitialPersonsIfEmpty,
+} from './lib/firebase';
 
 export default function App() {
   // Current user / shift nurse
   const [currentUser, setCurrentUser] = useState<string>(() => {
-    return localStorage.getItem('aging_ward_user') || 'พว. สมหญิง';
+    return localStorage.getItem('aging_ward_user') || '';
+  });
+  // Login status - check if logged in before entering the system
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return localStorage.getItem('aging_ward_is_logged_in') === 'true';
   });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<'record' | 'history' | 'summary'>('record');
 
-  // Persons / Beds of Aging Ward
-  const persons = DEFAULT_PERSONS;
+  // Persons / Patients of Aging Ward (Dynamic state synced with LocalStorage & Firestore)
+  const [persons, setPersons] = useState<string[]>(() => {
+    const saved = localStorage.getItem('aging_ward_persons');
+    if (saved) {
+      try {
+        const parsed: string[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        return [];
+      }
+    }
+    return DEFAULT_PERSONS;
+  });
+
+  // Manage modal active tab
+  const [manageModalTab, setManageModalTab] = useState<'items' | 'patients' | 'settings'>('patients');
 
   // Helper to filter out permanently removed items
   const isPermanentlyRemovedItem = (name?: string, recordType?: string) => {
@@ -64,9 +100,11 @@ export default function App() {
     if (saved) {
       try {
         const parsed: StockRecord[] = JSON.parse(saved);
-        return parsed.filter((r) => !isPermanentlyRemovedItem(r.item_name, r.record_type));
+        return parsed.filter(
+          (r) => !isPermanentlyRemovedItem(r.item_name, r.record_type)
+        );
       } catch {
-        return INITIAL_SEED_RECORDS;
+        return [];
       }
     }
     return INITIAL_SEED_RECORDS;
@@ -74,15 +112,25 @@ export default function App() {
 
   // Selected bed across tabs
   const [selectedPerson, setSelectedPerson] = useState<string>(() => {
-    return DEFAULT_PERSONS[0] || '';
+    return persons[0] || '';
   });
+
+  // Keep selectedPerson in sync if it is deleted or not in list
+  useEffect(() => {
+    if (selectedPerson && !persons.includes(selectedPerson)) {
+      setSelectedPerson(persons[0] || '');
+    }
+  }, [persons, selectedPerson]);
 
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<StockRecord | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
 
-  // Manage items/beds modal
+  // Manage items modal
   const [isManageModalOpen, setIsManageModalOpen] = useState<boolean>(false);
+
+  // Export CSV modal state
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
   // Sync to localStorage
   useEffect(() => {
@@ -98,6 +146,62 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('aging_ward_records', JSON.stringify(records));
   }, [records]);
+
+  useEffect(() => {
+    localStorage.setItem('aging_ward_persons', JSON.stringify(persons));
+  }, [persons]);
+
+  // Real-time synchronization with Firestore project: stockMUNAaging
+  useEffect(() => {
+    let unsubscribeRecords: () => void = () => {};
+    let unsubscribeItems: () => void = () => {};
+    let unsubscribePersons: () => void = () => {};
+
+    try {
+      unsubscribeRecords = subscribeToStockRecords(
+        (firestoreRecords) => {
+          const validRecords = firestoreRecords.filter(
+            (r) => !isPermanentlyRemovedItem(r.item_name, r.record_type)
+          );
+          setRecords(validRecords);
+        },
+        (error) => {
+          console.warn('Firestore stock_records listener error:', error);
+        }
+      );
+
+      unsubscribeItems = subscribeToItems(
+        (firestoreItems) => {
+          if (firestoreItems.length > 0) {
+            const validItems = firestoreItems.filter(
+              (i) => !isPermanentlyRemovedItem(i.name)
+            );
+            setItems(validItems);
+          }
+        },
+        (error) => {
+          console.warn('Firestore items listener error:', error);
+        }
+      );
+
+      unsubscribePersons = subscribeToPersons(
+        (firestorePersons) => {
+          setPersons(firestorePersons);
+        },
+        (error) => {
+          console.warn('Firestore persons listener error:', error);
+        }
+      );
+    } catch (e) {
+      console.warn('Failed to initialize Firebase listeners:', e);
+    }
+
+    return () => {
+      unsubscribeRecords();
+      unsubscribeItems();
+      unsubscribePersons();
+    };
+  }, []);
 
   // Ward statistics for top header notification
   const { lowStockCount, borrowedCount } = useMemo(() => {
@@ -126,21 +230,30 @@ export default function App() {
     return { lowStockCount: low, borrowedCount: borrowed };
   }, [persons, items, records]);
 
-  // Record creation handler
+  // Record creation handler (saves to state and Firestore)
   const handleAddRecord = (newRec: Omit<StockRecord, 'id'>) => {
     const record: StockRecord = {
       ...newRec,
       id: 'rec-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
     };
+    // Optimistic UI update
     setRecords((prev) => [record, ...prev]);
+    // Save to Firestore cloud database
+    saveRecordToFirestore(record).catch((err) => {
+      console.warn('Firestore write failed, cached locally:', err);
+    });
   };
 
-  // Record deletion
+  // Record deletion (removes from state and Firestore)
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
-    setRecords((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+    const targetId = deleteTarget.id;
+    setRecords((prev) => prev.filter((r) => r.id !== targetId));
     setIsDeleteModalOpen(false);
     setDeleteTarget(null);
+    deleteRecordFromFirestore(targetId).catch((err) => {
+      console.warn('Firestore delete failed:', err);
+    });
   };
 
   // Quick Action from Summary (e.g. +1 receive or -1 withdraw)
@@ -160,19 +273,23 @@ export default function App() {
 
   // Add custom item
   const handleAddItem = (newItem: ItemDefinition) => {
-    setItems((prev) => [...prev, newItem]);
+    const updated = [...items, newItem];
+    setItems(updated);
+    saveItemsToFirestore(updated).catch(console.warn);
   };
 
   // Delete item from system
   const handleDeleteItem = (itemName: string) => {
-    setItems((prev) => prev.filter((i) => i.name !== itemName));
+    const updated = items.filter((i) => i.name !== itemName);
+    setItems(updated);
+    saveItemsToFirestore(updated).catch(console.warn);
   };
 
   // Update item settings (alert / threshold)
   const handleUpdateItem = (itemName: string, updated: Partial<ItemDefinition>) => {
-    setItems((prev) =>
-      prev.map((it) => (it.name === itemName ? { ...it, ...updated } : it))
-    );
+    const newItems = items.map((it) => (it.name === itemName ? { ...it, ...updated } : it));
+    setItems(newItems);
+    saveItemsToFirestore(newItems).catch(console.warn);
   };
 
   // Full Edit item (name, unit, alert threshold/enabled)
@@ -180,17 +297,17 @@ export default function App() {
     const trimmedNew = updatedItem.name.trim();
     if (!trimmedNew) return;
 
-    setItems((prev) =>
-      prev.map((it) =>
-        it.name === oldName
-          ? {
-              ...updatedItem,
-              name: trimmedNew,
-              unit: updatedItem.unit.trim() || 'ชิ้น',
-            }
-          : it
-      )
+    const newItems = items.map((it) =>
+      it.name === oldName
+        ? {
+            ...updatedItem,
+            name: trimmedNew,
+            unit: updatedItem.unit.trim() || 'ชิ้น',
+          }
+        : it
     );
+    setItems(newItems);
+    saveItemsToFirestore(newItems).catch(console.warn);
 
     // If item name or unit changed, update existing transaction records to maintain stock balance
     if (oldName !== trimmedNew || updatedItem.unit) {
@@ -227,16 +344,82 @@ export default function App() {
     }
   };
 
+  // Patient Management handlers
+  const handleAddPerson = (newPerson: string) => {
+    const trimmed = newPerson.trim();
+    if (!trimmed) return;
+    if (persons.some((p) => p.toLowerCase() === trimmed.toLowerCase())) return;
+    const updated = [...persons, trimmed];
+    setPersons(updated);
+    if (!selectedPerson) {
+      setSelectedPerson(trimmed);
+    }
+    savePersonToFirestore(trimmed, updated.length - 1).catch((err) =>
+      console.warn('Save person to Firestore error:', err)
+    );
+  };
+
+  const handleDeletePerson = (personToDelete: string) => {
+    const updated = persons.filter((p) => p !== personToDelete);
+    setPersons(updated);
+    if (selectedPerson === personToDelete) {
+      setSelectedPerson(updated[0] || '');
+    }
+    deletePersonFromFirestore(personToDelete).catch((err) =>
+      console.warn('Delete person from Firestore error:', err)
+    );
+  };
+
+  const handleEditPerson = (oldName: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || oldName === trimmed) return;
+    const updated = persons.map((p) => (p === oldName ? trimmed : p));
+    setPersons(updated);
+    if (selectedPerson === oldName) {
+      setSelectedPerson(trimmed);
+    }
+    deletePersonFromFirestore(oldName).catch(console.warn);
+    savePersonToFirestore(trimmed, updated.indexOf(trimmed)).catch(console.warn);
+
+    // Update records that referenced this patient so history and summaries remain linked
+    setRecords((prev) =>
+      prev.map((r) => (r.person_name === oldName ? { ...r, person_name: trimmed } : r))
+    );
+  };
+
+  // Staff login handler
+  const handleLogin = (name: string) => {
+    const clean = name.trim();
+    if (!clean) return;
+    setCurrentUser(clean);
+    setIsLoggedIn(true);
+    localStorage.setItem('aging_ward_is_logged_in', 'true');
+    localStorage.setItem('aging_ward_user', clean);
+  };
+
+  // Staff logout handler (return to login screen)
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem('aging_ward_is_logged_in');
+  };
+
   // Reset to default seed
   const handleResetData = () => {
     setItems(DEFAULT_ITEMS);
     setRecords(INITIAL_SEED_RECORDS);
+    setPersons(DEFAULT_PERSONS);
     setSelectedPerson(DEFAULT_PERSONS[0] || '');
     localStorage.removeItem('aging_ward_items');
     localStorage.removeItem('aging_ward_records');
     localStorage.removeItem('aging_ward_persons');
     localStorage.removeItem('aging_ward_vacant_beds');
+    saveAllPersonsToFirestore(DEFAULT_PERSONS).catch(console.warn);
   };
+
+  // If not logged in, show dedicated Login Page before entering the system
+  if (!isLoggedIn) {
+    return <LoginPage initialUser={currentUser} onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-purple-200">
@@ -245,14 +428,18 @@ export default function App() {
         currentUser={currentUser}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onOpenManage={() => setIsManageModalOpen(true)}
+        onOpenManage={() => {
+          setManageModalTab('patients');
+          setIsManageModalOpen(true);
+        }}
         onOpenUserModal={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
         lowStockCount={lowStockCount}
         borrowedCount={borrowedCount}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Main Container - compact spacing to minimize scrolling */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-5 py-2 sm:py-3 pb-20 sm:pb-24">
         {/* TAB: Record */}
         {activeTab === 'record' && (
           <div id="page-record">
@@ -264,6 +451,10 @@ export default function App() {
               selectedPerson={selectedPerson}
               onSelectPerson={setSelectedPerson}
               onAddRecord={handleAddRecord}
+              onOpenManagePatients={() => {
+                setManageModalTab('patients');
+                setIsManageModalOpen(true);
+              }}
             />
           </div>
         )}
@@ -292,25 +483,52 @@ export default function App() {
               selectedPerson={selectedPerson}
               onSelectPerson={setSelectedPerson}
               onQuickAction={handleQuickAction}
+              onOpenExport={() => setIsExportModalOpen(true)}
             />
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-purple-100 bg-white py-4 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
-          <span>หอผู้ป่วยผู้สูงอายุ (Aging Ward) • ระบบบันทึกสต็อกของใช้ &amp; หัตถการรายเตียง</span>
+      <footer className="border-t border-purple-100 bg-white py-2 mt-auto mb-14 sm:mb-16 text-[11px] text-slate-400">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-1">
+          <div className="flex items-center gap-2">
+            <span>หอผู้ป่วยผู้สูงอายุ (Aging Ward)</span>
+            <span className="text-slate-300">•</span>
+            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Firebase: stockMUNAaging
+            </span>
+          </div>
           <span>ผู้ปฏิบัติงานปัจจุบัน: <strong className="text-purple-700">{currentUser}</strong></span>
         </div>
       </footer>
+
+      {/* Quick Bottom Navigation Bar (คีย์ข้อมูล, ประวัติ, สรุปยอด, ส่งออก CSV) */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onExportClick={() => setIsExportModalOpen(true)}
+        lowStockCount={lowStockCount}
+        borrowedCount={borrowedCount}
+      />
+
+      {/* CSV Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        records={records}
+        persons={persons}
+        items={items}
+        selectedPerson={selectedPerson}
+      />
 
       {/* Staff Login / Switch Modal */}
       <LoginModal
         isOpen={isLoginModalOpen}
         currentUser={currentUser}
         onLogin={(name) => {
-          setCurrentUser(name);
+          handleLogin(name);
           setIsLoginModalOpen(false);
         }}
         onClose={() => setIsLoginModalOpen(false)}
@@ -327,15 +545,20 @@ export default function App() {
         }}
       />
 
-      {/* Manage Items Modal */}
+      {/* Manage Items & Patients Modal */}
       <ManageModal
         isOpen={isManageModalOpen}
         items={items}
+        persons={persons}
+        initialTab={manageModalTab}
         onClose={() => setIsManageModalOpen(false)}
         onAddItem={handleAddItem}
         onDeleteItem={handleDeleteItem}
         onEditItem={handleEditItem}
         onUpdateItem={handleUpdateItem}
+        onAddPerson={handleAddPerson}
+        onDeletePerson={handleDeletePerson}
+        onEditPerson={handleEditPerson}
         onResetData={handleResetData}
       />
     </div>

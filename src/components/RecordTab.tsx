@@ -15,6 +15,7 @@ import {
   Calendar,
   Layers,
   Sparkles,
+  UserPlus,
 } from 'lucide-react';
 
 interface RecordTabProps {
@@ -25,6 +26,7 @@ interface RecordTabProps {
   selectedPerson: string;
   onSelectPerson: (person: string) => void;
   onAddRecord: (record: Omit<StockRecord, 'id'>) => void;
+  onOpenManagePatients?: () => void;
 }
 
 export const RecordTab: React.FC<RecordTabProps> = ({
@@ -35,6 +37,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
   selectedPerson,
   onSelectPerson,
   onAddRecord,
+  onOpenManagePatients,
 }) => {
   const [subTab, setSubTab] = useState<'stock' | 'procedure'>('stock');
   const [selectedItemName, setSelectedItemName] = useState<string>('');
@@ -133,7 +136,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
   // Handle stock receive/withdraw
   const handleSaveStock = (type: 'receive' | 'withdraw') => {
     if (!selectedPerson) {
-      showToast('กรุณาเลือกเตียง (ชื่อผู้ป่วย)', 'warning');
+      showToast('กรุณาเลือกชื่อผู้ป่วย', 'warning');
       return;
     }
     if (!selectedItemName) {
@@ -171,7 +174,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
   // Handle procedure save
   const handleSaveProcedure = () => {
     if (!selectedPerson) {
-      showToast('กรุณาเลือกเตียง (ชื่อผู้ป่วย)', 'warning');
+      showToast('กรุณาเลือกชื่อผู้ป่วย', 'warning');
       return;
     }
     if (!procCategory) {
@@ -295,21 +298,38 @@ export const RecordTab: React.FC<RecordTabProps> = ({
     selectedItem && selectedItem.alert_enabled !== false && selectedItem.threshold > 0;
 
   return (
-    <div className="space-y-5">
-      {/* Bed Selector Card */}
-      <div className="bg-white rounded-2xl p-5 shadow-xs border border-purple-200/70">
-        <label className="block text-sm font-bold text-slate-800 mb-2">
-          เลือกเตียง (ชื่อผู้ป่วย) <span className="text-rose-500">*</span>
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+    <div className="space-y-2.5 sm:space-y-3">
+      {/* Patient Selector Card */}
+      <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-200/70">
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-xs sm:text-sm font-bold text-slate-800">
+            เลือกชื่อผู้ป่วย <span className="text-rose-500">*</span>
+          </label>
+          {onOpenManagePatients && (
+            <button
+              type="button"
+              onClick={onOpenManagePatients}
+              className="text-2xs sm:text-xs text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-200 transition font-semibold flex items-center gap-1"
+              title="เพิ่มหรือลบรายชื่อผู้ป่วยในหอผู้ป่วย"
+            >
+              <UserPlus className="w-3 h-3 text-purple-600" />
+              <span>เพิ่ม/ลบรายชื่อผู้ป่วย</span>
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
           <div className="sm:col-span-2">
             <select
               id="record-person"
               value={selectedPerson}
               onChange={(e) => onSelectPerson(e.target.value)}
-              className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
+              className="w-full border border-purple-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
             >
-              <option value="">-- เลือกเตียง --</option>
+              <option value="">
+                {persons.length === 0
+                  ? '-- ยังไม่มีรายชื่อผู้ป่วยในระบบ (กดเพิ่มผู้ป่วย) --'
+                  : '-- เลือกชื่อผู้ป่วย --'}
+              </option>
               {persons.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -318,24 +338,43 @@ export const RecordTab: React.FC<RecordTabProps> = ({
             </select>
           </div>
 
-          {selectedPerson && (
-            <div className="text-xs bg-purple-50 text-purple-900 px-3.5 py-2.5 rounded-xl border border-purple-200/80 flex items-center justify-between">
-              <span className="text-purple-700 font-medium">เตียงปัจจุบัน:</span>
+          {selectedPerson ? (
+            <div className="text-xs bg-purple-50 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-200/80 flex items-center justify-between">
+              <span className="text-purple-700 font-medium">ผู้ป่วย:</span>
               <span className="font-bold text-sm text-purple-900">{selectedPerson}</span>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 italic px-2">
+              {persons.length === 0 ? 'รอเพิ่มรายชื่อผู้ป่วย' : 'ยังไม่ได้เลือกผู้ป่วย'}
             </div>
           )}
         </div>
+
+        {persons.length === 0 && (
+          <div className="mt-2 text-xs bg-amber-50 text-amber-900 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <span>ยังไม่มีรายชื่อผู้ป่วยในระบบ สามารถกดปุ่มเพื่อเพิ่มชื่อหรือเตียงผู้ป่วยได้ทันที</span>
+            {onOpenManagePatients && (
+              <button
+                type="button"
+                onClick={onOpenManagePatients}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs px-2.5 py-1 rounded-lg shrink-0 transition"
+              >
+                + เพิ่มผู้ป่วย
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Action Box */}
       <div className="bg-white rounded-2xl shadow-xs border border-purple-200/70 overflow-hidden">
         {/* Sub-tab selection */}
-        <div className="flex border-b border-slate-200 bg-slate-50/80 p-1.5 gap-2">
+        <div className="flex border-b border-slate-200 bg-slate-50/80 p-1 gap-1.5">
           <button
             type="button"
             id="subtab-stock"
             onClick={() => setSubTab('stock')}
-            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-1.5 ${
               subTab === 'stock'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50'
@@ -348,7 +387,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
             type="button"
             id="subtab-procedure"
             onClick={() => setSubTab('procedure')}
-            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-1.5 ${
               subTab === 'procedure'
                 ? 'bg-pink-600 text-white shadow-xs shadow-pink-200'
                 : 'text-slate-600 hover:text-pink-700 hover:bg-pink-50'
@@ -360,11 +399,11 @@ export const RecordTab: React.FC<RecordTabProps> = ({
         </div>
 
         {/* Content area */}
-        <div className="p-5 sm:p-6">
+        <div className="p-3.5 sm:p-4">
           {/* Feedback Toast */}
           {message && (
             <div
-              className={`mb-5 p-3.5 rounded-xl flex items-center gap-2.5 text-sm font-medium transition-all ${
+              className={`mb-3 p-2.5 rounded-xl flex items-center gap-2 text-xs sm:text-sm font-medium transition-all ${
                 message.type === 'success'
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                   : message.type === 'warning'
@@ -373,9 +412,9 @@ export const RecordTab: React.FC<RecordTabProps> = ({
               }`}
             >
               {message.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
               ) : (
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0" />
               )}
               <span>{message.text}</span>
             </div>
@@ -383,17 +422,17 @@ export const RecordTab: React.FC<RecordTabProps> = ({
 
           {/* SUBTAB 1: Stock Receive / Withdraw */}
           {subTab === 'stock' && (
-            <div className="space-y-4">
+            <div className="space-y-2.5 sm:space-y-3">
               {/* Item selection */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">
                   ชื่อของใช้ <span className="text-rose-500">*</span>
                 </label>
                 <select
                   id="item-select"
                   value={selectedItemName}
                   onChange={(e) => setSelectedItemName(e.target.value)}
-                  className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full border border-purple-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400"
                 >
                   <option value="">-- เลือกรายการของใช้ --</option>
                   {items.map((it) => (
@@ -407,7 +446,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
               {/* Dynamic Live Balance Badge */}
               {selectedPerson && selectedItemName && currentItemBalance !== null && (
                 <div
-                  className={`p-3.5 rounded-xl border flex items-center justify-between text-sm ${
+                  className={`p-2 px-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm ${
                     currentItemBalance < 0
                       ? 'bg-rose-50 border-rose-200 text-rose-800'
                       : currentItemBalance === 0 && BEDSIDE_ITEMS.includes(selectedItemName)
@@ -417,29 +456,29 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                       : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="font-semibold">
-                      ยอดคงเหลือเตียง {selectedPerson} ({selectedItemName}):
+                      ยอด {selectedPerson}:
                     </span>
-                    <span className="font-bold text-base">{currentItemBalance}</span>
+                    <span className="font-bold text-sm sm:text-base">{currentItemBalance}</span>
                     <span>{selectedItem?.unit || 'ชิ้น'}</span>
                   </div>
 
                   <div>
                     {currentItemBalance < 0 ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-rose-600 text-white">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-600 text-white">
                         ยืมแผนก ({Math.abs(currentItemBalance)})
                       </span>
                     ) : currentItemBalance === 0 && BEDSIDE_ITEMS.includes(selectedItemName) ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-purple-700 text-white">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-700 text-white">
                         กำลังเปิดใช้งานข้างเตียง
                       </span>
                     ) : isItemAlertActive && currentItemBalance <= (selectedItem?.threshold || 0) ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500 text-white">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500 text-white">
                         ใกล้หมด
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-800">
                         พร้อมใช้งาน
                       </span>
                     )}
@@ -449,40 +488,75 @@ export const RecordTab: React.FC<RecordTabProps> = ({
 
               {/* Quantity */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">
                   จำนวน ({selectedItem?.unit || 'ชิ้น'}) <span className="text-rose-500">*</span>
                 </label>
-                <div className="max-w-xs">
-                  <input
-                    id="item-qty"
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full sm:w-48 border border-purple-200 rounded-xl px-4 py-2.5 text-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  />
+                <div className="flex items-center gap-2 max-w-sm flex-wrap">
+                  <div className="flex items-center border border-purple-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-600 hover:bg-purple-50 active:bg-purple-100 font-bold text-base border-r border-purple-100 transition"
+                      title="ลดจำนวน"
+                    >
+                      -
+                    </button>
+                    <input
+                      id="item-qty"
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-14 sm:w-16 text-center py-1 text-base font-bold text-slate-900 focus:outline-none bg-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => q + 1)}
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-600 hover:bg-purple-50 active:bg-purple-100 font-bold text-base border-l border-purple-100 transition"
+                      title="เพิ่มจำนวน"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 5, 10].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setQuantity(num)}
+                        className={`px-2 py-1 rounded-lg text-xs font-bold border transition min-h-[36px] min-w-[34px] active:scale-95 ${
+                          quantity === num
+                            ? 'bg-purple-700 text-white border-purple-700 shadow-xs'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50 hover:border-purple-200'
+                        }`}
+                      >
+                        +{num}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Action Buttons: Receive vs Withdraw */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5">
                 <button
                   type="button"
                   id="receive-btn"
                   onClick={() => handleSaveStock('receive')}
-                  className="py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow"
+                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow min-h-[44px]"
                 >
-                  <PackagePlus className="w-5 h-5" />
-                  <span>รับเข้าสต็อกเตียง</span>
+                  <PackagePlus className="w-4.5 h-4.5" />
+                  <span>รับเข้าสต็อก</span>
                 </button>
 
                 <button
                   type="button"
                   id="withdraw-btn"
                   onClick={() => handleSaveStock('withdraw')}
-                  className="py-3.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow"
+                  className="py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow min-h-[44px]"
                 >
-                  <PackageMinus className="w-5 h-5" />
+                  <PackageMinus className="w-4.5 h-4.5" />
                   <span>เบิกใช้งาน</span>
                 </button>
               </div>
@@ -491,16 +565,16 @@ export const RecordTab: React.FC<RecordTabProps> = ({
 
           {/* SUBTAB 2: Bedside Procedures */}
           {subTab === 'procedure' && (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">
                   เลือกหมวดหัตถการ <span className="text-pink-600">*</span>
                 </label>
                 <select
                   id="proc-category"
                   value={procCategory}
                   onChange={(e) => setProcCategory(e.target.value as ProcedureCategory)}
-                  className="w-full border border-pink-200 rounded-xl px-4 py-2.5 text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-medium shadow-2xs"
+                  className="w-full border border-pink-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 font-medium shadow-2xs"
                 >
                   <option value="">-- เลือกหมวดหัตถการ --</option>
                   {PROCEDURE_CATEGORIES.map((cat) => (
@@ -513,7 +587,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
 
               {/* Category-specific dynamic forms */}
               {procCategory && (
-                <div className="bg-pink-50/60 border border-pink-200/80 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
+                <div className="bg-pink-50/60 border border-pink-200/80 rounded-2xl p-3 sm:p-3.5 space-y-2.5 shadow-2xs">
                   {/* 1. Oxygen */}
                   {procCategory === 'oxygen' && (
                     <div className="space-y-3">

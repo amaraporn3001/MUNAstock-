@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "stock_records": {
+      "description": "Historical records of received/withdrawn medical supplies and procedures performed on patients in the ward",
+      "example": {
+        "id": "rec-1726040000000",
+        "person_name": "เตียง 1 นายสมชาย ใจดี",
+        "item_name": "แพมเพิส",
+        "item_unit": "ชิ้น",
+        "quantity": 2,
+        "action_type": "withdraw",
+        "record_type": "transaction",
+        "timestamp": "2026-09-11T07:30:00.000Z",
+        "performed_by": "พยาบาลเวรเช้า",
+        "notes": ""
+      },
+      "operations": [
+        "create: record supply usage or patient procedure",
+        "read: list and filter transaction history and calculate real-time inventory balances",
+        "delete: remove erroneous record entries"
+      ]
+    },
+    "persons": {
+      "description": "Ward patient names and bed numbers",
+      "example": {
+        "name": "เตียง 1 นายสมชาย ใจดี",
+        "order": 1,
+        "active": true
+      },
+      "operations": [
+        "create: register new patient in ward",
+        "read: list all patients for selection",
+        "update: update patient bed/status"
+      ]
+    },
+    "items": {
+      "description": "Catalog of medical supplies and items tracked in the ward",
+      "example": {
+        "name": "แพมเพิส",
+        "unit": "ชิ้น",
+        "threshold": 3,
+        "alert_enabled": true
+      },
+      "operations": [
+        "create: add new consumable item",
+        "read: load stock catalog and alert criteria",
+        "update: adjust alert thresholds"
+      ]
+    }
+  }
+}

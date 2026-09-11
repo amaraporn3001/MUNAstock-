@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, Shield, Sparkles, HeartHandshake } from 'lucide-react';
+import { UserCheck, HeartHandshake } from 'lucide-react';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -7,16 +7,6 @@ interface LoginModalProps {
   onLogin: (username: string) => void;
   onClose?: () => void;
 }
-
-const PRESET_USERS = [
-  'พว. สมหญิง',
-  'พว. รัตนา',
-  'ผช. วรพงษ์',
-  'พว. สุภาพร',
-  'พว. ประจำเวรเช้า',
-  'พว. ประจำเวรบ่าย',
-  'พว. ประจำเวรดึก'
-];
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
@@ -38,12 +28,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
     setError('');
     onLogin(clean);
-  };
-
-  const handleSelectPreset = (name: string) => {
-    setUsername(name);
-    setError('');
-    onLogin(name);
   };
 
   return (
@@ -84,25 +68,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               />
             </div>
             {error && <p className="text-rose-600 text-xs mt-1.5">{error}</p>}
-          </div>
-
-          {/* Quick presets */}
-          <div>
-            <span className="text-xs font-medium text-slate-500 block mb-2">
-              เลือกด่วนจากรายชื่อเวรประจำ:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {PRESET_USERS.map((user) => (
-                <button
-                  type="button"
-                  key={user}
-                  onClick={() => handleSelectPreset(user)}
-                  className="text-xs px-2.5 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg border border-purple-100 transition font-medium text-left"
-                >
-                  {user}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="pt-2 flex gap-2">

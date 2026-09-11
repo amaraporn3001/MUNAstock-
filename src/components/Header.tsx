@@ -7,6 +7,7 @@ interface HeaderProps {
   onTabChange: (tab: 'record' | 'history' | 'summary') => void;
   onOpenManage: () => void;
   onOpenUserModal: () => void;
+  onLogout?: () => void;
   lowStockCount: number;
   borrowedCount: number;
 }
@@ -17,37 +18,45 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
   onOpenManage,
   onOpenUserModal,
+  onLogout,
   lowStockCount,
   borrowedCount,
 }) => {
   return (
     <header className="bg-white border-b border-purple-200/80 sticky top-0 z-40 shadow-xs backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
           {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-700 text-white flex items-center justify-center shadow-md shadow-purple-900/10">
-              <Package className="w-5 h-5" />
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-700 text-white flex-shrink-0 flex items-center justify-center shadow-md shadow-purple-900/10">
+              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight tracking-tight">
-                  Stock ของใช้ &amp; หัตถการรายเตียง
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 leading-tight tracking-tight truncate">
+                  Stock ของใช้ &amp; หัตถการผู้ป่วย
                 </h1>
-                <span className="text-[11px] font-semibold bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full border border-purple-200/70">
+                <span className="text-[10px] font-semibold bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded-full border border-purple-200/70 whitespace-nowrap">
                   Aging Ward
                 </span>
+                <span
+                  className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.2 rounded-full border border-emerald-200/80 whitespace-nowrap"
+                  title="เชื่อมต่อฐานข้อมูล Firebase Firestore โปรเจกต์ stockMUNAaging แบบเรียลไทม์"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>stockMUNAaging</span>
+                </span>
               </div>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                ระบบจัดการคลังของใช้และบันทึกหัตถการผู้ป่วยรายเตียง • หอผู้ป่วยผู้สูงอายุ
+              <p className="text-[11px] text-slate-500 hidden sm:block truncate">
+                ระบบจัดการคลังของใช้และบันทึกหัตถการผู้ป่วย • หอผู้ป่วยผู้สูงอายุ
               </p>
             </div>
           </div>
 
-          {/* Navigation & User Bar */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {/* Navigation (Desktop) & User Bar */}
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {currentUser && (
-              <nav className="flex items-center bg-slate-100/90 p-1 rounded-xl gap-1 border border-slate-200/60">
+              <nav className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-xl gap-1 border border-slate-200/60">
                 <button
                   type="button"
                   id="nav-tab-record"
@@ -97,35 +106,46 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Quick Actions & User Pill */}
             {currentUser ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   type="button"
                   onClick={onOpenManage}
-                  title="จัดการรายการของใช้"
-                  className="p-2 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition"
+                  title="จัดการข้อมูลของใช้"
+                  className="p-2 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition min-w-[38px] min-h-[38px] flex items-center justify-center"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </button>
 
-                <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
+                <div className="flex items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200">
                   <button
                     type="button"
                     onClick={onOpenUserModal}
-                    className="flex items-center gap-2 px-2.5 py-1 bg-purple-50 hover:bg-purple-100/80 rounded-lg text-xs font-semibold text-purple-900 transition border border-purple-200/60"
-                    title="คลิกเพื่อเปลี่ยนผู้ใช้งาน"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 bg-purple-50 hover:bg-purple-100/80 rounded-lg text-xs font-semibold text-purple-900 transition border border-purple-200/60"
+                    title="คลิกเพื่อเปลี่ยนชื่อผู้ปฏิบัติงาน"
                   >
                     <div className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-[10px]">
                       {currentUser.slice(0, 1)}
                     </div>
-                    <span className="max-w-[120px] truncate">{currentUser}</span>
+                    <span className="max-w-[85px] sm:max-w-[130px] truncate">{currentUser}</span>
                   </button>
+
+                  {onLogout && (
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      title="ออกจากระบบ / สลับผู้ใช้งาน"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={onOpenUserModal}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-700 text-white rounded-lg text-sm font-semibold hover:bg-purple-800 transition shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 text-white rounded-lg text-xs sm:text-sm font-semibold hover:bg-purple-800 transition shadow-xs"
               >
                 <User className="w-4 h-4" />
                 <span>เข้าสู่ระบบเวร</span>

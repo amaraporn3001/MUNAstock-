@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Supply records and procedures
+    match /stock_records/{recordId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.person_name is string
+                            && request.resource.data.item_name is string;
+      allow delete: if true;
+    }
+
+    // Patients in the ward
+    match /persons/{personId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow delete: if true;
+    }
+
+    // Consumable catalog items
+    match /items/{itemId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // App metadata / settings
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
