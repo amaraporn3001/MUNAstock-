@@ -31,14 +31,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-slate-50 to-purple-100/50 flex flex-col justify-between p-4 sm:p-6 selection:bg-purple-200">
+    <div className="min-h-screen bg-gradient-to-b from-[#faf6fe] via-[#f7f2fb] to-[#f2ebf8] flex flex-col justify-between p-4 sm:p-6 selection:bg-purple-200">
       {/* Top hospital header branding */}
       <div className="w-full max-w-md mx-auto pt-4 sm:pt-8 flex items-center justify-center gap-2 text-purple-900">
-        <div className="w-8 h-8 rounded-lg bg-purple-700 text-white flex items-center justify-center shadow-sm">
-          <Activity className="w-5 h-5 text-purple-100" />
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-400 text-white flex items-center justify-center shadow-xs">
+          <Activity className="w-4.5 h-4.5 text-white" />
         </div>
         <div className="text-left">
-          <span className="text-xs font-bold uppercase tracking-wider text-purple-700 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-purple-600 block">
             Aging Ward System
           </span>
           <span className="text-sm font-semibold text-slate-700">หอผู้ป่วยผู้สูงอายุ</span>
@@ -47,16 +47,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       {/* Main Login Card */}
       <div className="w-full max-w-md mx-auto my-auto py-6">
-        <div className="bg-white rounded-3xl shadow-xl shadow-purple-950/5 border border-purple-100/90 overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-xl shadow-purple-200/30 border border-purple-100/90 overflow-hidden">
           {/* Header Banner */}
-          <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-indigo-800 p-6 sm:p-8 text-white text-center relative">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center mx-auto mb-3.5 shadow-inner">
-              <HeartHandshake className="w-9 h-9 text-purple-100" />
+          <div className="bg-gradient-to-r from-purple-500 via-purple-400 to-indigo-400 p-6 sm:p-8 text-white text-center relative">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center mx-auto mb-3.5 shadow-inner">
+              <HeartHandshake className="w-9 h-9 text-white" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               เข้าสู่ระบบเวร Aging Ward
             </h1>
-            <p className="text-xs sm:text-sm text-purple-100/90 mt-1.5">
+            <p className="text-xs sm:text-sm text-purple-100 mt-1.5 font-normal">
               ระบบบันทึกสต็อกของใช้ &amp; หัตถการผู้ป่วย
             </p>
           </div>
@@ -80,7 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     if (error) setError('');
                   }}
                   placeholder="เช่น พว. วิภาดา หรือ ผช. สมนึก"
-                  className="w-full border-2 border-purple-200/80 rounded-2xl px-4 py-3.5 text-base text-slate-900 bg-white focus:outline-none focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition placeholder:text-slate-400 font-medium"
+                  className="w-full border-2 border-purple-200/70 rounded-2xl px-4 py-3.5 text-base text-slate-900 bg-white focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100/70 transition placeholder:text-slate-400 font-medium"
                   autoFocus
                 />
               </div>
@@ -104,10 +104,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="submit"
                 id="btn-login-submit"
                 disabled={!isOnline}
-                className={`w-full min-h-[48px] py-3.5 px-6 rounded-2xl font-bold text-base shadow-lg transition flex items-center justify-center gap-2 ${
+                className={`w-full min-h-[48px] py-3.5 px-6 rounded-2xl font-bold text-base shadow-md transition flex items-center justify-center gap-2 ${
                   isOnline
-                    ? 'bg-purple-700 hover:bg-purple-800 active:scale-[0.99] text-white shadow-purple-700/20 cursor-pointer'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-400 hover:from-purple-600 hover:to-indigo-500 active:scale-[0.99] text-white shadow-purple-300/30 cursor-pointer'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                 }`}
               >
                 <UserCheck className="w-5 h-5" />

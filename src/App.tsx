@@ -292,6 +292,15 @@ export default function App() {
     });
   };
 
+  // Record update (edit record and persist changes to state and Firestore)
+  const handleUpdateRecord = (updatedRecord: StockRecord) => {
+    if (!requireOnline('แก้ไขข้อมูลประวัติ')) return;
+    setRecords((prev) => prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r)));
+    saveRecordToFirestore(updatedRecord).catch((err) => {
+      console.warn('Firestore update record failed:', err);
+    });
+  };
+
   // Quick Action from Summary (e.g. +1 receive or -1 withdraw)
   const handleQuickAction = (person: string, itemName: string, type: 'receive' | 'withdraw') => {
     if (!requireOnline('ทำรายการด่วน')) return;
@@ -484,7 +493,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-purple-200">
+    <div className="min-h-screen bg-[#faf7fd] flex flex-col selection:bg-purple-200 selection:text-purple-900">
       {offlineBlockerElement}
       {/* Top Navigation */}
       <Header
@@ -529,10 +538,12 @@ export default function App() {
             <HistoryTab
               records={records}
               persons={persons}
+              items={items}
               onDeleteRequest={(rec) => {
                 setDeleteTarget(rec);
                 setIsDeleteModalOpen(true);
               }}
+              onUpdateRecord={handleUpdateRecord}
             />
           </div>
         )}
@@ -554,7 +565,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-purple-100 bg-white py-2 mt-auto mb-14 sm:mb-16 text-[11px] text-slate-400">
+      <footer className="border-t border-purple-100/90 bg-white/70 backdrop-blur-xs py-2 mt-auto mb-14 sm:mb-16 text-[11px] text-slate-400">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-1">
           <div className="flex items-center gap-2">
             <span>หอผู้ป่วยผู้สูงอายุ (Aging Ward)</span>
@@ -571,7 +582,7 @@ export default function App() {
               </span>
             )}
           </div>
-          <span>ผู้ปฏิบัติงานปัจจุบัน: <strong className="text-purple-700">{currentUser}</strong></span>
+          <span>ผู้ปฏิบัติงานปัจจุบัน: <strong className="text-purple-600 font-semibold">{currentUser}</strong></span>
         </div>
       </footer>
 

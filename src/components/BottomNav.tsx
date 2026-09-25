@@ -24,7 +24,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     <nav
       id="bottom-quick-navigation"
       aria-label="เมนูลัดด้านล่าง"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-purple-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.07)]"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-purple-100 shadow-[0_-4px_20px_rgba(168,85,247,0.06)]"
       style={{
         paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)',
       }}
@@ -40,11 +40,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           }}
           className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1 px-1 sm:px-2 rounded-xl transition-all duration-150 min-h-[44px] active:scale-95 ${
             activeTab === 'record'
-              ? 'bg-purple-700 text-white shadow-md shadow-purple-700/25 font-bold'
-              : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50 font-medium'
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-sm shadow-purple-300/30 font-bold'
+              : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50/70 font-medium'
           }`}
         >
-          <ClipboardList className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'record' ? 'text-white' : 'text-slate-500'}`} />
+          <ClipboardList className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'record' ? 'text-white' : 'text-slate-400'}`} />
           <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">คีย์ข้อมูล</span>
         </button>
 
@@ -58,11 +58,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           }}
           className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1 px-1 sm:px-2 rounded-xl transition-all duration-150 min-h-[44px] active:scale-95 ${
             activeTab === 'history'
-              ? 'bg-purple-700 text-white shadow-md shadow-purple-700/25 font-bold'
-              : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50 font-medium'
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-sm shadow-purple-300/30 font-bold'
+              : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50/70 font-medium'
           }`}
         >
-          <Clock className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'history' ? 'text-white' : 'text-slate-500'}`} />
+          <Clock className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'history' ? 'text-white' : 'text-slate-400'}`} />
           <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">ประวัติ</span>
         </button>
 
@@ -76,12 +76,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           }}
           className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1 px-1 sm:px-2 rounded-xl transition-all duration-150 min-h-[44px] active:scale-95 relative ${
             activeTab === 'summary'
-              ? 'bg-purple-700 text-white shadow-md shadow-purple-700/25 font-bold'
-              : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50 font-medium'
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-sm shadow-purple-300/30 font-bold'
+              : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50/70 font-medium'
           }`}
         >
           <div className="relative">
-            <BarChart3 className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'summary' ? 'text-white' : 'text-slate-500'}`} />
+            <BarChart3 className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'summary' ? 'text-white' : 'text-slate-400'}`} />
             {alertCount > 0 && (
               <span
                 title={`มีการแจ้งเตือน ${alertCount} รายการ`}
@@ -94,7 +94,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <span
               className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-bold hidden sm:inline-block ${
                 activeTab === 'summary'
-                  ? 'bg-white/20 text-white'
+                  ? 'bg-white/25 text-white'
                   : 'bg-rose-100 text-rose-700'
               }`}
             >

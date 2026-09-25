@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ItemDefinition,
   StockRecord,
@@ -119,6 +119,28 @@ export const RecordTab: React.FC<RecordTabProps> = ({
   // Notification message
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
+  // Success Notification Popup Modal
+  interface SuccessPopupData {
+    type: 'receive' | 'withdraw' | 'procedure';
+    title: string;
+    badge: string;
+    itemName: string;
+    amountText: string;
+    patientName: string;
+    userName: string;
+    extraInfo?: string;
+  }
+  const [successPopup, setSuccessPopup] = useState<SuccessPopupData | null>(null);
+
+  // Auto-dismiss success popup after 3 seconds if not closed manually
+  useEffect(() => {
+    if (!successPopup) return;
+    const timer = setTimeout(() => {
+      setSuccessPopup(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [successPopup]);
+
   const showToast = (text: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 3500);
@@ -161,12 +183,24 @@ export const RecordTab: React.FC<RecordTabProps> = ({
       record_type: 'transaction',
     });
 
+    const isReceive = type === 'receive';
     showToast(
-      type === 'receive'
+      isReceive
         ? `บันทึกรับเข้า "${selectedItemName}" จำนวน ${quantity} ${selectedItem?.unit || ''} สำเร็จ`
         : `บันทึกเบิกออก "${selectedItemName}" จำนวน ${quantity} ${selectedItem?.unit || ''} สำเร็จ`,
       'success'
     );
+
+    // Trigger popup modal for user confirmation
+    setSuccessPopup({
+      type,
+      title: 'บันทึกเรียบร้อยแล้ว',
+      badge: isReceive ? 'รับเข้าสต็อก' : 'เบิกใช้งาน',
+      itemName: selectedItemName,
+      amountText: `${quantity} ${selectedItem?.unit || 'ชิ้น'}`,
+      patientName: selectedPerson,
+      userName: currentUser || 'ผู้ใช้ทั่วไป',
+    });
 
     setQuantity(1);
   };
@@ -271,7 +305,20 @@ export const RecordTab: React.FC<RecordTabProps> = ({
       wound_location: woundLoc.trim(),
     });
 
-    showToast(`บันทึกหัตถการ "${catNameMap[procCategory]}" สำเร็จ`, 'success');
+    const catTitle = catNameMap[procCategory] || procCategory;
+    showToast(`บันทึกหัตถการ "${catTitle}" สำเร็จ`, 'success');
+
+    // Trigger popup modal for user confirmation
+    setSuccessPopup({
+      type: 'procedure',
+      title: 'บันทึกเรียบร้อยแล้ว',
+      badge: 'บันทึกหัตถการ',
+      itemName: catTitle,
+      amountText: `${procCount} ครั้ง`,
+      patientName: selectedPerson,
+      userName: currentUser || 'ผู้ใช้ทั่วไป',
+      extraInfo: detailParts.join(' | '),
+    });
 
     // Reset procedure form counts
     setProcCount(1);
@@ -299,8 +346,99 @@ export const RecordTab: React.FC<RecordTabProps> = ({
 
   return (
     <div className="space-y-2.5 sm:space-y-3">
+      {/* Success Notification Popup Modal */}
+      {successPopup && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="success-popup-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setSuccessPopup(null)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl border border-emerald-100 max-w-sm w-full p-5 sm:p-6 text-center transform scale-100 animate-in zoom-in-95 duration-150 relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top decorative gradient glow */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+
+            {/* Success Icon */}
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mb-3.5 shadow-sm mt-1">
+              <CheckCircle2 className="w-9 h-9 text-emerald-600 animate-pulse" />
+            </div>
+
+            {/* Popup Title */}
+            <h3
+              id="success-popup-title"
+              className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 tracking-tight"
+            >
+              {successPopup.title}
+            </h3>
+
+            {/* Action Type Badge */}
+            <div className="flex justify-center mb-3">
+              <span
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
+                  successPopup.type === 'receive'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : successPopup.type === 'withdraw'
+                    ? 'bg-rose-50 text-rose-800 border-rose-200'
+                    : 'bg-pink-50 text-pink-800 border-pink-200'
+                }`}
+              >
+                {successPopup.badge}
+              </span>
+            </div>
+
+            {/* Summary Details Card */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-700 text-left space-y-1.5 mb-5 shadow-2xs">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-slate-500 shrink-0">รายการ:</span>
+                <span className="font-bold text-slate-900 text-right truncate">
+                  {successPopup.itemName}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">จำนวน:</span>
+                <span className="font-bold text-purple-700">
+                  {successPopup.amountText}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">ผู้ป่วย / เตียง:</span>
+                <span className="font-medium text-slate-800">
+                  {successPopup.patientName}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">ผู้บันทึก:</span>
+                <span className="font-medium text-slate-600">
+                  {successPopup.userName}
+                </span>
+              </div>
+              {successPopup.extraInfo && (
+                <div className="pt-1.5 border-t border-slate-200/70 text-[11px] text-slate-500 line-clamp-2">
+                  {successPopup.extraInfo}
+                </div>
+              )}
+            </div>
+
+            {/* OK Dismiss Button */}
+            <button
+              type="button"
+              id="btn-close-success-popup"
+              onClick={() => setSuccessPopup(null)}
+              className="w-full py-3 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-sm sm:text-base shadow-md shadow-emerald-700/20 active:scale-[0.98] transition cursor-pointer"
+              autoFocus
+            >
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Patient Selector Card */}
-      <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-200/70">
+      <div className="bg-white/90 rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-100/90">
         <div className="flex items-center justify-between mb-1">
           <label className="block text-xs sm:text-sm font-bold text-slate-800">
             เลือกชื่อผู้ป่วย <span className="text-rose-500">*</span>
@@ -309,10 +447,10 @@ export const RecordTab: React.FC<RecordTabProps> = ({
             <button
               type="button"
               onClick={onOpenManagePatients}
-              className="text-2xs sm:text-xs text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-200 transition font-semibold flex items-center gap-1"
+              className="text-2xs sm:text-xs text-purple-700 hover:text-purple-900 bg-purple-50/80 hover:bg-purple-100/80 px-2 py-0.5 rounded-lg border border-purple-200/60 transition font-semibold flex items-center gap-1"
               title="เพิ่มหรือลบรายชื่อผู้ป่วยในหอผู้ป่วย"
             >
-              <UserPlus className="w-3 h-3 text-purple-600" />
+              <UserPlus className="w-3 h-3 text-purple-500" />
               <span>เพิ่ม/ลบรายชื่อผู้ป่วย</span>
             </button>
           )}
@@ -323,7 +461,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
               id="record-person"
               value={selectedPerson}
               onChange={(e) => onSelectPerson(e.target.value)}
-              className="w-full border border-purple-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
+              className="w-full border border-purple-200/80 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium"
             >
               <option value="">
                 {persons.length === 0
@@ -339,8 +477,8 @@ export const RecordTab: React.FC<RecordTabProps> = ({
           </div>
 
           {selectedPerson ? (
-            <div className="text-xs bg-purple-50 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-200/80 flex items-center justify-between">
-              <span className="text-purple-700 font-medium">ผู้ป่วย:</span>
+            <div className="text-xs bg-purple-50/80 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center justify-between">
+              <span className="text-purple-600 font-medium">ผู้ป่วย:</span>
               <span className="font-bold text-sm text-purple-900">{selectedPerson}</span>
             </div>
           ) : (
@@ -351,13 +489,13 @@ export const RecordTab: React.FC<RecordTabProps> = ({
         </div>
 
         {persons.length === 0 && (
-          <div className="mt-2 text-xs bg-amber-50 text-amber-900 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
+          <div className="mt-2 text-xs bg-amber-50/80 text-amber-900 border border-amber-200/60 rounded-xl p-2.5 flex items-center justify-between gap-2">
             <span>ยังไม่มีรายชื่อผู้ป่วยในระบบ สามารถกดปุ่มเพื่อเพิ่มชื่อหรือเตียงผู้ป่วยได้ทันที</span>
             {onOpenManagePatients && (
               <button
                 type="button"
                 onClick={onOpenManagePatients}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs px-2.5 py-1 rounded-lg shrink-0 transition"
+                className="bg-purple-500 hover:bg-purple-600 text-white font-semibold text-xs px-2.5 py-1 rounded-lg shrink-0 transition shadow-xs"
               >
                 + เพิ่มผู้ป่วย
               </button>
@@ -367,17 +505,17 @@ export const RecordTab: React.FC<RecordTabProps> = ({
       </div>
 
       {/* Main Action Box */}
-      <div className="bg-white rounded-2xl shadow-xs border border-purple-200/70 overflow-hidden">
+      <div className="bg-white/95 rounded-2xl shadow-xs border border-purple-100 overflow-hidden">
         {/* Sub-tab selection */}
-        <div className="flex border-b border-slate-200 bg-slate-50/80 p-1 gap-1.5">
+        <div className="flex border-b border-purple-100/70 bg-purple-50/30 p-1 gap-1.5">
           <button
             type="button"
             id="subtab-stock"
             onClick={() => setSubTab('stock')}
             className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-1.5 ${
               subTab === 'stock'
-                ? 'bg-purple-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50'
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-xs'
+                : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50/60'
             }`}
           >
             <Boxes className="w-4 h-4" />
@@ -389,8 +527,8 @@ export const RecordTab: React.FC<RecordTabProps> = ({
             onClick={() => setSubTab('procedure')}
             className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-1.5 ${
               subTab === 'procedure'
-                ? 'bg-pink-600 text-white shadow-xs shadow-pink-200'
-                : 'text-slate-600 hover:text-pink-700 hover:bg-pink-50'
+                ? 'bg-gradient-to-r from-pink-400 to-rose-400 text-white shadow-xs shadow-pink-200/50'
+                : 'text-slate-600 hover:text-pink-600 hover:bg-pink-50/60'
             }`}
           >
             <Stethoscope className="w-4 h-4" />
@@ -432,7 +570,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                   id="item-select"
                   value={selectedItemName}
                   onChange={(e) => setSelectedItemName(e.target.value)}
-                  className="w-full border border-purple-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full border border-purple-200/80 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300"
                 >
                   <option value="">-- เลือกรายการของใช้ --</option>
                   {items.map((it) => (
@@ -450,10 +588,10 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                     currentItemBalance < 0
                       ? 'bg-rose-50 border-rose-200 text-rose-800'
                       : currentItemBalance === 0 && BEDSIDE_ITEMS.includes(selectedItemName)
-                      ? 'bg-purple-50 border-purple-200 text-purple-900'
+                      ? 'bg-purple-50/80 border-purple-200 text-purple-900'
                       : isItemAlertActive && currentItemBalance <= (selectedItem?.threshold || 0)
                       ? 'bg-amber-50 border-amber-200 text-amber-900'
-                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                      : 'bg-slate-50/80 border-slate-200 text-slate-800'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
@@ -470,7 +608,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                         ยืมแผนก ({Math.abs(currentItemBalance)})
                       </span>
                     ) : currentItemBalance === 0 && BEDSIDE_ITEMS.includes(selectedItemName) ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-700 text-white">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-600 text-white">
                         กำลังเปิดใช้งานข้างเตียง
                       </span>
                     ) : isItemAlertActive && currentItemBalance <= (selectedItem?.threshold || 0) ? (
@@ -492,11 +630,11 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                   จำนวน ({selectedItem?.unit || 'ชิ้น'}) <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex items-center gap-2 max-w-sm flex-wrap">
-                  <div className="flex items-center border border-purple-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                  <div className="flex items-center border border-purple-200/80 rounded-xl overflow-hidden bg-white shadow-2xs">
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-600 hover:bg-purple-50 active:bg-purple-100 font-bold text-base border-r border-purple-100 transition"
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-600 hover:bg-purple-50/80 active:bg-purple-100 font-bold text-base border-r border-purple-100 transition"
                       title="ลดจำนวน"
                     >
                       -
@@ -512,7 +650,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => q + 1)}
-                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-600 hover:bg-purple-50 active:bg-purple-100 font-bold text-base border-l border-purple-100 transition"
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-600 hover:bg-purple-50/80 active:bg-purple-100 font-bold text-base border-l border-purple-100 transition"
                       title="เพิ่มจำนวน"
                     >
                       +
@@ -527,8 +665,8 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                         onClick={() => setQuantity(num)}
                         className={`px-2 py-1 rounded-lg text-xs font-bold border transition min-h-[36px] min-w-[34px] active:scale-95 ${
                           quantity === num
-                            ? 'bg-purple-700 text-white border-purple-700 shadow-xs'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50 hover:border-purple-200'
+                            ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white border-purple-400 shadow-2xs'
+                            : 'bg-white text-slate-700 border-purple-100 hover:bg-purple-50 hover:border-purple-200'
                         }`}
                       >
                         +{num}
@@ -544,7 +682,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                   type="button"
                   id="receive-btn"
                   onClick={() => handleSaveStock('receive')}
-                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow min-h-[44px]"
+                  className="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow min-h-[44px]"
                 >
                   <PackagePlus className="w-4.5 h-4.5" />
                   <span>รับเข้าสต็อก</span>
@@ -554,7 +692,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                   type="button"
                   id="withdraw-btn"
                   onClick={() => handleSaveStock('withdraw')}
-                  className="py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow min-h-[44px]"
+                  className="py-2.5 px-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-sm transition hover:shadow min-h-[44px]"
                 >
                   <PackageMinus className="w-4.5 h-4.5" />
                   <span>เบิกใช้งาน</span>

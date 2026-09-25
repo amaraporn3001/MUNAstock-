@@ -32,14 +32,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-purple-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-md rounded-3xl shadow-xl border border-purple-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Banner */}
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-white text-center">
-          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <HeartHandshake className="w-6 h-6 text-purple-100" />
+        <div className="bg-gradient-to-r from-purple-500 via-purple-400 to-indigo-400 p-6 text-white text-center">
+          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center mx-auto mb-3 shadow-inner">
+            <HeartHandshake className="w-6 h-6 text-white" />
           </div>
           <h2 className="text-xl font-bold">เข้าสู่ระบบเวร Aging Ward</h2>
-          <p className="text-xs text-purple-200 mt-1">
+          <p className="text-xs text-purple-100 mt-1">
             ระบุชื่อพยาบาลหรือผู้ช่วยเพื่อลงชื่อกำกับในประวัติการเบิกและหัตถการ
           </p>
         </div>
@@ -63,7 +63,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   if (error) setError('');
                 }}
                 placeholder="เช่น พว. วิภาดา หรือ ผช. สมนึก"
-                className="w-full border border-purple-200 rounded-xl px-4 py-3 text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition placeholder:text-slate-400"
+                className="w-full border border-purple-200/80 rounded-xl px-4 py-3 text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300 transition placeholder:text-slate-400"
                 autoFocus
               />
             </div>
@@ -82,7 +82,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             )}
             <button
               type="submit"
-              className="flex-1 py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition text-sm shadow-md shadow-purple-200 flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-400 hover:from-purple-600 hover:to-indigo-500 text-white font-semibold transition text-sm shadow-md shadow-purple-300/30 flex items-center justify-center gap-2"
             >
               <UserCheck className="w-4 h-4" />
               <span>ยืนยันเข้าปฏิบัติงาน</span>

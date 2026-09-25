@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StockRecord } from '../types';
+import { StockRecord, ItemDefinition } from '../types';
 import {
   Search,
   Filter,
@@ -13,18 +13,24 @@ import {
   ArrowUpRight,
   Stethoscope,
   X,
+  Pencil,
 } from 'lucide-react';
+import { EditRecordModal } from './EditRecordModal';
 
 interface HistoryTabProps {
   records: StockRecord[];
   persons: string[];
+  items?: ItemDefinition[];
   onDeleteRequest: (record: StockRecord) => void;
+  onUpdateRecord?: (record: StockRecord) => void;
 }
 
 export const HistoryTab: React.FC<HistoryTabProps> = ({
   records,
   persons,
+  items = [],
   onDeleteRequest,
+  onUpdateRecord,
 }) => {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [fromDate, setFromDate] = useState<string>(todayStr);
@@ -32,6 +38,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const [selectedPerson, setSelectedPerson] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [editingRecord, setEditingRecord] = useState<StockRecord | null>(null);
 
   // Quick date presets
   const handleQuickDate = (preset: 'today' | '7days' | 'month' | 'all') => {
@@ -125,10 +132,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   return (
     <div className="space-y-2 sm:space-y-2.5">
       {/* Filter Card */}
-      <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-100 space-y-2">
+      <div className="bg-white/95 rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-100 space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-1.5 pb-1.5 border-b border-purple-50">
           <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-purple-600" />
+            <Filter className="w-3.5 h-3.5 text-purple-500" />
             <h3 className="font-bold text-slate-800 text-xs sm:text-sm">ตัวกรองค้นหาประวัติ</h3>
           </div>
 
@@ -138,28 +145,32 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             <button
               type="button"
               onClick={() => handleQuickDate('today')}
-              className="text-xs px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 font-medium transition"
+              className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
+                fromDate === todayStr && toDate === todayStr
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white font-semibold shadow-2xs'
+                  : 'bg-purple-50/70 text-purple-700 hover:bg-purple-100/70'
+              }`}
             >
               วันนี้
             </button>
             <button
               type="button"
               onClick={() => handleQuickDate('7days')}
-              className="text-xs px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 font-medium transition"
+              className="text-xs px-2.5 py-0.5 rounded-lg bg-purple-50/70 text-purple-700 hover:bg-purple-100/70 font-medium transition"
             >
               7 วัน
             </button>
             <button
               type="button"
               onClick={() => handleQuickDate('month')}
-              className="text-xs px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 font-medium transition"
+              className="text-xs px-2.5 py-0.5 rounded-lg bg-purple-50/70 text-purple-700 hover:bg-purple-100/70 font-medium transition"
             >
               เดือนนี้
             </button>
             <button
               type="button"
               onClick={() => handleQuickDate('all')}
-              className="text-xs px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition"
+              className="text-xs px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition"
             >
               ทั้งหมด
             </button>
@@ -175,7 +186,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-purple-200/80 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
           </div>
 
@@ -187,7 +198,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-purple-200/80 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
           </div>
 
@@ -198,7 +209,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               id="hist-person"
               value={selectedPerson}
               onChange={(e) => setSelectedPerson(e.target.value)}
-              className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-purple-200/80 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
             >
               <option value="">ผู้ป่วยทุกคน</option>
               {persons.map((p) => (
@@ -216,7 +227,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               id="hist-type"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-purple-200/80 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
             >
               <option value="">ทั้งหมด</option>
               <option value="transaction">รับ / เบิกของใช้</option>
@@ -234,7 +245,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               placeholder="ค้นหาของใช้, หัตถการ, ตำแหน่งแผล, ผู้บันทึก..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 text-xs border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full pl-8 pr-7 py-1.5 text-xs border border-purple-200/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
             {searchQuery && (
               <button
@@ -377,20 +388,45 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   </div>
                 </div>
 
-                {/* Delete Button */}
-                <button
-                  type="button"
-                  onClick={() => onDeleteRequest(r)}
-                  className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
-                  title="ลบรายการนี้"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {/* Action Buttons: Edit (Pencil) & Delete (Trash) */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setEditingRecord(r)}
+                    className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50/80 rounded-lg transition cursor-pointer"
+                    title="แก้ไขการคีย์ข้อมูลรายการนี้"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onDeleteRequest(r)}
+                    className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
+                    title="ลบรายการนี้"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             );
           })
         )}
       </div>
+
+      {/* Edit Record Modal */}
+      <EditRecordModal
+        isOpen={Boolean(editingRecord)}
+        record={editingRecord}
+        persons={persons}
+        items={items}
+        onClose={() => setEditingRecord(null)}
+        onSave={(updated) => {
+          if (onUpdateRecord) {
+            onUpdateRecord(updated);
+          }
+        }}
+      />
     </div>
   );
 };

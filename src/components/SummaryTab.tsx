@@ -66,8 +66,13 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
     items.forEach((it) => {
       const qty = totals[it.name] ?? 0;
       const isRecorded = recordedNames.has(it.name);
-      // Only display if recorded or if it's a critical item
-      if (!isRecorded && qty === 0) return;
+
+      // Specifically for 'แผ่นรองซับ': If no receive or withdraw records exist, do not display in summary
+      if (it.name.includes('แผ่นรองซับ') && !isRecorded) return;
+
+      const isPriorityItem = it.name === 'แพมเพิส';
+      // Only display if recorded or if it's a priority item (แพมเพิส)
+      if (!isRecorded && qty === 0 && !isPriorityItem) return;
 
       const isAlertActive = it.alert_enabled !== false && it.threshold > 0;
       const isBorrowed = qty < 0;
@@ -106,6 +111,31 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
         isBedsideActive,
         isCustom: true,
       });
+    });
+
+    // Sort items: "แพมเพิส" 1st, "แผ่นรองซับ" 2nd, followed by remaining items in catalog order
+    const getItemOrderPriority = (name: string): number => {
+      const clean = name.trim();
+      if (clean === 'แพมเพิส' || clean.startsWith('แพมเพิส')) return 1;
+      if (clean === 'แผ่นรองซับ' || clean.startsWith('แผ่นรองซับ')) return 2;
+      return 100;
+    };
+
+    itemsList.sort((a, b) => {
+      const priorityA = getItemOrderPriority(a.name);
+      const priorityB = getItemOrderPriority(b.name);
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      // Preserve standard catalog order if defined
+      const indexA = items.findIndex((i) => i.name === a.name);
+      const indexB = items.findIndex((i) => i.name === b.name);
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.name.localeCompare(b.name, 'th');
     });
 
     // Average Diaper & Underpad Usage
@@ -174,7 +204,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
   return (
     <div className="space-y-2.5 sm:space-y-3">
       {/* Top Controls: Bed selector & quick status chips */}
-      <div className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-100 space-y-2">
+      <div className="bg-white/95 rounded-2xl p-3 sm:p-3.5 shadow-xs border border-purple-100 space-y-2">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
           <div className="sm:col-span-2">
             <label className="block text-xs font-semibold text-slate-600 mb-1">
@@ -184,7 +214,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               id="sum-person"
               value={selectedPerson}
               onChange={(e) => onSelectPerson(e.target.value)}
-              className="w-full border border-purple-200 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium"
+              className="w-full border border-purple-200/80 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium"
             >
               <option value="">-- เลือกชื่อผู้ป่วย --</option>
               {persons.map((p) => (
@@ -197,13 +227,13 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
 
           {/* Quick ward alert metrics */}
           <div className="flex gap-2">
-            <div className="flex-1 bg-rose-50 border border-rose-100 rounded-xl p-1.5 sm:p-2 text-center">
+            <div className="flex-1 bg-rose-50/80 border border-rose-100 rounded-xl p-1.5 sm:p-2 text-center">
               <span className="text-[10px] sm:text-[11px] font-semibold text-rose-700 block">ยืมแผนก</span>
               <span className="text-base sm:text-lg font-bold text-rose-900 leading-tight">
                 {wardStats.totalBorrowedCount}
               </span>
             </div>
-            <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-1.5 sm:p-2 text-center">
+            <div className="flex-1 bg-amber-50/80 border border-amber-100 rounded-xl p-1.5 sm:p-2 text-center">
               <span className="text-[10px] sm:text-[11px] font-semibold text-amber-700 block">ใกล้หมด</span>
               <span className="text-base sm:text-lg font-bold text-amber-900 leading-tight">
                 {wardStats.totalLowCount}
@@ -219,10 +249,10 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('all')}
-                className={`text-xs px-2 py-0.5 rounded-lg font-medium transition ${
+                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
                   filterMode === 'all'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-2xs font-semibold'
+                    : 'bg-purple-50/60 text-slate-600 hover:bg-purple-100/70 hover:text-purple-800'
                 }`}
               >
                 ทั้งหมด ({summaryData.itemsList.length})
@@ -230,9 +260,9 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('low')}
-                className={`text-xs px-2 py-0.5 rounded-lg font-medium transition ${
+                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
                   filterMode === 'low'
-                    ? 'bg-amber-500 text-white'
+                    ? 'bg-amber-500 text-white shadow-2xs font-semibold'
                     : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
                 }`}
               >
@@ -241,9 +271,9 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('borrowed')}
-                className={`text-xs px-2 py-0.5 rounded-lg font-medium transition ${
+                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
                   filterMode === 'borrowed'
-                    ? 'bg-rose-600 text-white'
+                    ? 'bg-rose-600 text-white shadow-2xs font-semibold'
                     : 'bg-rose-50 text-rose-800 hover:bg-rose-100'
                 }`}
               >
@@ -253,14 +283,14 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 hidden sm:inline">
-                ผู้ป่วย: <strong className="text-purple-700">{selectedPerson}</strong>
+                ผู้ป่วย: <strong className="text-purple-600 font-semibold">{selectedPerson}</strong>
               </span>
               {onOpenExport && (
                 <button
                   type="button"
                   id="btn-summary-export-csv"
                   onClick={onOpenExport}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold border border-purple-200/80 transition"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50/80 text-purple-700 hover:bg-purple-100/80 rounded-lg text-xs font-semibold border border-purple-200/60 transition"
                   title="ส่งออกรายงานข้อมูลสต็อกเป็นไฟล์ CSV"
                 >
                   <Download className="w-3.5 h-3.5" />

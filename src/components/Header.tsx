@@ -25,20 +25,20 @@ export const Header: React.FC<HeaderProps> = ({
   isOnline = true,
 }) => {
   return (
-    <header className="bg-white border-b border-purple-200/80 sticky top-0 z-40 shadow-xs backdrop-blur-md">
+    <header className="bg-white/90 border-b border-purple-100/90 sticky top-0 z-40 shadow-[0_2px_12px_rgba(168,85,247,0.04)] backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2">
         <div className="flex items-center justify-between gap-2 sm:gap-3">
           {/* Logo & Title */}
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-700 text-white flex-shrink-0 flex items-center justify-center shadow-md shadow-purple-900/10">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-400 text-white flex-shrink-0 flex items-center justify-center shadow-sm shadow-purple-300/30">
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <h1 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 leading-tight tracking-tight truncate">
+                <h1 className="text-sm sm:text-base md:text-lg font-bold text-slate-800 leading-tight tracking-tight truncate">
                   Stock ของใช้ &amp; หัตถการผู้ป่วย
                 </h1>
-                <span className="text-[10px] font-semibold bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded-full border border-purple-200/70 whitespace-nowrap">
+                <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 px-2 py-0.2 rounded-full border border-purple-200/70 whitespace-nowrap">
                   Aging Ward
                 </span>
                 {isOnline ? (
@@ -68,15 +68,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Navigation (Desktop) & User Bar */}
           <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {currentUser && (
-              <nav className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-xl gap-1 border border-slate-200/60">
+              <nav className="hidden md:flex items-center bg-purple-50/50 p-1 rounded-xl gap-1 border border-purple-100/70">
                 <button
                   type="button"
                   id="nav-tab-record"
                   onClick={() => onTabChange('record')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                     activeTab === 'record'
-                      ? 'bg-purple-700 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50/80'
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-purple-700 hover:bg-white/80'
                   }`}
                 >
                   <ClipboardList className="w-4 h-4" />
@@ -89,8 +89,8 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => onTabChange('history')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                     activeTab === 'history'
-                      ? 'bg-purple-700 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50/80'
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-purple-700 hover:bg-white/80'
                   }`}
                 >
                   <Clock className="w-4 h-4" />
@@ -103,8 +103,8 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => onTabChange('summary')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all relative ${
                     activeTab === 'summary'
-                      ? 'bg-purple-700 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-purple-800 hover:bg-purple-50/80'
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-purple-700 hover:bg-white/80'
                   }`}
                 >
                   <BarChart3 className="w-4 h-4" />
@@ -123,19 +123,19 @@ export const Header: React.FC<HeaderProps> = ({
                   type="button"
                   onClick={onOpenManage}
                   title="จัดการข้อมูลของใช้"
-                  className="p-2 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition min-w-[38px] min-h-[38px] flex items-center justify-center"
+                  className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition min-w-[38px] min-h-[38px] flex items-center justify-center"
                 >
                   <Settings className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </button>
 
-                <div className="flex items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200">
+                <div className="flex items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2 border-l border-purple-100">
                   <button
                     type="button"
                     onClick={onOpenUserModal}
-                    className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 bg-purple-50 hover:bg-purple-100/80 rounded-lg text-xs font-semibold text-purple-900 transition border border-purple-200/60"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-purple-50 hover:bg-purple-100/70 rounded-xl text-xs font-semibold text-purple-800 transition border border-purple-200/60"
                     title="คลิกเพื่อเปลี่ยนชื่อผู้ปฏิบัติงาน"
                   >
-                    <div className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-[10px]">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-400 text-white flex items-center justify-center font-bold text-[10px]">
                       {currentUser.slice(0, 1)}
                     </div>
                     <span className="max-w-[85px] sm:max-w-[130px] truncate">{currentUser}</span>
