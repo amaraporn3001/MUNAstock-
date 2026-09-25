@@ -15,6 +15,8 @@ import { SummaryTab } from './components/SummaryTab';
 import { DeleteModal } from './components/DeleteModal';
 import { ManageModal } from './components/ManageModal';
 import { ExportModal } from './components/ExportModal';
+import { OfflineBlocker } from './components/OfflineBlocker';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import {
   subscribeToStockRecords,
   saveRecordToFirestore,
@@ -22,6 +24,7 @@ import {
   seedInitialRecordsIfEmpty,
   subscribeToItems,
   saveItemsToFirestore,
+  deleteItemFromFirestore,
   subscribeToPersons,
   savePersonToFirestore,
   deletePersonFromFirestore,
@@ -30,6 +33,15 @@ import {
 } from './lib/firebase';
 
 export default function App() {
+  // Online/Offline network connectivity state
+  const {
+    isOnline,
+    isChecking: isCheckingOnline,
+    lastCheckFailed: isOnlineCheckFailed,
+    lastCheckedAt,
+    checkConnectivity,
+  } = useOnlineStatus();
+
   // Current user / shift nurse
   const [currentUser, setCurrentUser] = useState<string>(() => {
     return localStorage.getItem('aging_ward_user') || '';
@@ -70,13 +82,7 @@ export default function App() {
     return (
       lower === 'blue pad' ||
       lower === 'สเปรย์ดับกลิ่น' ||
-      lower === 'สเปร์ยดับกลิ่น' ||
-      lower === 'suction' ||
-      lower === 'สาย suction' ||
-      lower === 'สายดูดเสมหะ' ||
-      lower === 'สายดูดเสมหะ (suction)' ||
-      lower === 'สายดูดเสมหะ no.16' ||
-      lower === 'สายดูดเสมหะ no.14'
+      lower === 'สเปร์ยดับกลิ่น'
     );
   };
 
@@ -85,8 +91,20 @@ export default function App() {
     const saved = localStorage.getItem('aging_ward_items');
     if (saved) {
       try {
-        const parsed: ItemDefinition[] = JSON.parse(saved);
-        return parsed.filter((i) => !isPermanentlyRemovedItem(i.name));
+        let parsed: ItemDefinition[] = JSON.parse(saved);
+        parsed = parsed.filter((i) => !isPermanentlyRemovedItem(i.name));
+        const suctionIdx = parsed.findIndex((i) => i.name === 'สายดูดเสมหะ');
+        if (suctionIdx === -1) {
+          parsed.splice(2, 0, { name: 'สายดูดเสมหะ', unit: 'เส้น', threshold: 20, alert_enabled: true });
+        } else {
+          parsed[suctionIdx] = {
+            ...parsed[suctionIdx],
+            unit: 'เส้น',
+            threshold: 20,
+            alert_enabled: true,
+          };
+        }
+        return parsed;
       } catch {
         return DEFAULT_ITEMS;
       }
@@ -173,10 +191,17 @@ export default function App() {
       unsubscribeItems = subscribeToItems(
         (firestoreItems) => {
           if (firestoreItems.length > 0) {
-            const validItems = firestoreItems.filter(
+            let validItems = firestoreItems.filter(
               (i) => !isPermanentlyRemovedItem(i.name)
             );
+            const suctionIdx = validItems.findIndex((i) => i.name === 'สายดูดเสมหะ');
+            if (suctionIdx === -1) {
+              validItems.splice(2, 0, { name: 'สายดูดเสมหะ', unit: 'เส้น', threshold: 20, alert_enabled: true });
+              saveItemsToFirestore(validItems).catch(console.warn);
+            }
             setItems(validItems);
+          } else {
+            saveItemsToFirestore(DEFAULT_ITEMS).catch(console.warn);
           }
         },
         (error) => {
@@ -230,8 +255,18 @@ export default function App() {
     return { lowStockCount: low, borrowedCount: borrowed };
   }, [persons, items, records]);
 
+  // Helper guard to ensure operations cannot proceed while offline
+  const requireOnline = (actionName = 'ทำรายการ'): boolean => {
+    if (!isOnline) {
+      alert(`ไม่สามารถ${actionName}ได้ขณะออฟไลน์ กรุณาเชื่อมต่ออินเทอร์เน็ต`);
+      return false;
+    }
+    return true;
+  };
+
   // Record creation handler (saves to state and Firestore)
   const handleAddRecord = (newRec: Omit<StockRecord, 'id'>) => {
+    if (!requireOnline('บันทึกข้อมูล')) return;
     const record: StockRecord = {
       ...newRec,
       id: 'rec-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
@@ -246,6 +281,7 @@ export default function App() {
 
   // Record deletion (removes from state and Firestore)
   const handleDeleteConfirm = () => {
+    if (!requireOnline('ลบข้อมูล')) return;
     if (!deleteTarget) return;
     const targetId = deleteTarget.id;
     setRecords((prev) => prev.filter((r) => r.id !== targetId));
@@ -258,6 +294,7 @@ export default function App() {
 
   // Quick Action from Summary (e.g. +1 receive or -1 withdraw)
   const handleQuickAction = (person: string, itemName: string, type: 'receive' | 'withdraw') => {
+    if (!requireOnline('ทำรายการด่วน')) return;
     const itemObj = items.find((i) => i.name === itemName);
     handleAddRecord({
       person_name: person,
@@ -273,6 +310,7 @@ export default function App() {
 
   // Add custom item
   const handleAddItem = (newItem: ItemDefinition) => {
+    if (!requireOnline('เพิ่มรายการของใช้')) return;
     const updated = [...items, newItem];
     setItems(updated);
     saveItemsToFirestore(updated).catch(console.warn);
@@ -280,13 +318,16 @@ export default function App() {
 
   // Delete item from system
   const handleDeleteItem = (itemName: string) => {
+    if (!requireOnline('ลบรายการของใช้')) return;
     const updated = items.filter((i) => i.name !== itemName);
     setItems(updated);
     saveItemsToFirestore(updated).catch(console.warn);
+    deleteItemFromFirestore(itemName).catch(console.warn);
   };
 
   // Update item settings (alert / threshold)
   const handleUpdateItem = (itemName: string, updated: Partial<ItemDefinition>) => {
+    if (!requireOnline('แก้ไขการตั้งค่ารายการ')) return;
     const newItems = items.map((it) => (it.name === itemName ? { ...it, ...updated } : it));
     setItems(newItems);
     saveItemsToFirestore(newItems).catch(console.warn);
@@ -294,6 +335,7 @@ export default function App() {
 
   // Full Edit item (name, unit, alert threshold/enabled)
   const handleEditItem = (oldName: string, updatedItem: ItemDefinition) => {
+    if (!requireOnline('แก้ไขรายการของใช้')) return;
     const trimmedNew = updatedItem.name.trim();
     if (!trimmedNew) return;
 
@@ -346,6 +388,7 @@ export default function App() {
 
   // Patient Management handlers
   const handleAddPerson = (newPerson: string) => {
+    if (!requireOnline('เพิ่มรายชื่อผู้ป่วย')) return;
     const trimmed = newPerson.trim();
     if (!trimmed) return;
     if (persons.some((p) => p.toLowerCase() === trimmed.toLowerCase())) return;
@@ -360,6 +403,7 @@ export default function App() {
   };
 
   const handleDeletePerson = (personToDelete: string) => {
+    if (!requireOnline('ลบรายชื่อผู้ป่วย')) return;
     const updated = persons.filter((p) => p !== personToDelete);
     setPersons(updated);
     if (selectedPerson === personToDelete) {
@@ -371,6 +415,7 @@ export default function App() {
   };
 
   const handleEditPerson = (oldName: string, newName: string) => {
+    if (!requireOnline('แก้ไขรายชื่อผู้ป่วย')) return;
     const trimmed = newName.trim();
     if (!trimmed || oldName === trimmed) return;
     const updated = persons.map((p) => (p === oldName ? trimmed : p));
@@ -389,6 +434,7 @@ export default function App() {
 
   // Staff login handler
   const handleLogin = (name: string) => {
+    if (!requireOnline('เข้าสู่ระบบ')) return;
     const clean = name.trim();
     if (!clean) return;
     setCurrentUser(clean);
@@ -405,6 +451,7 @@ export default function App() {
 
   // Reset to default seed
   const handleResetData = () => {
+    if (!requireOnline('รีเซ็ตข้อมูล')) return;
     setItems(DEFAULT_ITEMS);
     setRecords(INITIAL_SEED_RECORDS);
     setPersons(DEFAULT_PERSONS);
@@ -416,13 +463,29 @@ export default function App() {
     saveAllPersonsToFirestore(DEFAULT_PERSONS).catch(console.warn);
   };
 
+  // Offline blocker overlay component
+  const offlineBlockerElement = !isOnline ? (
+    <OfflineBlocker
+      isChecking={isCheckingOnline}
+      lastCheckFailed={isOnlineCheckFailed}
+      lastCheckedAt={lastCheckedAt}
+      onRetry={checkConnectivity}
+    />
+  ) : null;
+
   // If not logged in, show dedicated Login Page before entering the system
   if (!isLoggedIn) {
-    return <LoginPage initialUser={currentUser} onLogin={handleLogin} />;
+    return (
+      <>
+        {offlineBlockerElement}
+        <LoginPage initialUser={currentUser} onLogin={handleLogin} isOnline={isOnline} />
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-purple-200">
+      {offlineBlockerElement}
       {/* Top Navigation */}
       <Header
         currentUser={currentUser}
@@ -436,6 +499,7 @@ export default function App() {
         onLogout={handleLogout}
         lowStockCount={lowStockCount}
         borrowedCount={borrowedCount}
+        isOnline={isOnline}
       />
 
       {/* Main Container - compact spacing to minimize scrolling */}
@@ -495,20 +559,28 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span>หอผู้ป่วยผู้สูงอายุ (Aging Ward)</span>
             <span className="text-slate-300">•</span>
-            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Firebase: stockMUNAaging
-            </span>
+            {isOnline ? (
+              <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Firebase: stockMUNAaging (ออนไลน์)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-rose-700 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                ออฟไลน์ (ระงับการใช้งาน)
+              </span>
+            )}
           </div>
           <span>ผู้ปฏิบัติงานปัจจุบัน: <strong className="text-purple-700">{currentUser}</strong></span>
         </div>
       </footer>
 
-      {/* Quick Bottom Navigation Bar (คีย์ข้อมูล, ประวัติ, สรุปยอด, ส่งออก CSV) */}
+      {/* Quick Bottom Navigation Bar (คีย์ข้อมูล, ประวัติ, สรุปยอด, ส่งออก CSV, ออกจากระบบ) */}
       <BottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onExportClick={() => setIsExportModalOpen(true)}
+        onLogout={handleLogout}
         lowStockCount={lowStockCount}
         borrowedCount={borrowedCount}
       />

@@ -33,6 +33,22 @@ export const COLLECTIONS = {
 };
 
 /**
+ * Check whether device is currently online
+ */
+export function isNetworkOnline(): boolean {
+  return typeof navigator !== 'undefined' ? navigator.onLine : true;
+}
+
+/**
+ * Throw error if attempting database operations while offline
+ */
+export function assertOnline(): void {
+  if (!isNetworkOnline()) {
+    throw new Error('ไม่อนุญาตให้ใช้งานหรือทำรายการขณะออฟไลน์ กรุณาเชื่อมต่ออินเทอร์เน็ต');
+  }
+}
+
+/**
  * Subscribe to real-time changes in stock_records collection
  */
 export function subscribeToStockRecords(
@@ -74,6 +90,7 @@ export function subscribeToStockRecords(
  * Save a new or updated stock record to Firestore
  */
 export async function saveRecordToFirestore(record: StockRecord): Promise<void> {
+  assertOnline();
   try {
     const recordRef = doc(db, COLLECTIONS.RECORDS, record.id);
     // Sanitize undefined fields to prevent Firestore serialization errors
@@ -89,6 +106,7 @@ export async function saveRecordToFirestore(record: StockRecord): Promise<void> 
  * Delete a record from Firestore
  */
 export async function deleteRecordFromFirestore(recordId: string): Promise<void> {
+  assertOnline();
   try {
     const recordRef = doc(db, COLLECTIONS.RECORDS, recordId);
     await deleteDoc(recordRef);
@@ -102,6 +120,7 @@ export async function deleteRecordFromFirestore(recordId: string): Promise<void>
  * Initial bulk seed to Firestore if collection is empty
  */
 export async function seedInitialRecordsIfEmpty(initialRecords: StockRecord[]): Promise<boolean> {
+  assertOnline();
   try {
     const colRef = collection(db, COLLECTIONS.RECORDS);
     const existingSnap = await getDocs(colRef);
@@ -158,6 +177,7 @@ export function subscribeToItems(
  * Save custom item definitions to Firestore
  */
 export async function saveItemsToFirestore(items: ItemDefinition[]): Promise<void> {
+  assertOnline();
   try {
     const batch = writeBatch(db);
     items.forEach((item) => {
@@ -169,6 +189,20 @@ export async function saveItemsToFirestore(items: ItemDefinition[]): Promise<voi
     await batch.commit();
   } catch (err) {
     console.warn('Failed to save items to Firestore:', err);
+  }
+}
+
+/**
+ * Delete custom item definition from Firestore
+ */
+export async function deleteItemFromFirestore(itemName: string): Promise<void> {
+  assertOnline();
+  try {
+    const safeId = encodeURIComponent(itemName.trim());
+    const docRef = doc(db, COLLECTIONS.ITEMS, safeId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn('Failed to delete item from Firestore:', err);
   }
 }
 
@@ -213,6 +247,7 @@ export function subscribeToPersons(
  * Save or update single person in Firestore
  */
 export async function savePersonToFirestore(personName: string, order?: number): Promise<void> {
+  assertOnline();
   try {
     const trimmed = personName.trim();
     const safeId = encodeURIComponent(trimmed);
@@ -235,6 +270,7 @@ export async function savePersonToFirestore(personName: string, order?: number):
  * Delete a person from Firestore
  */
 export async function deletePersonFromFirestore(personName: string): Promise<void> {
+  assertOnline();
   try {
     const safeId = encodeURIComponent(personName.trim());
     const docRef = doc(db, COLLECTIONS.PERSONS, safeId);
@@ -248,6 +284,7 @@ export async function deletePersonFromFirestore(personName: string): Promise<voi
  * Save all persons to Firestore (batch overwrite/sync)
  */
 export async function saveAllPersonsToFirestore(persons: string[]): Promise<void> {
+  assertOnline();
   try {
     const batch = writeBatch(db);
     persons.forEach((name, idx) => {
@@ -274,6 +311,7 @@ export async function saveAllPersonsToFirestore(persons: string[]): Promise<void
  * Initial bulk seed of ward patients if Firestore collection is empty
  */
 export async function seedInitialPersonsIfEmpty(initialPersons: string[]): Promise<boolean> {
+  assertOnline();
   try {
     if (!initialPersons || initialPersons.length === 0) return false;
 

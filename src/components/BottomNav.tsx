@@ -1,10 +1,11 @@
 import React from 'react';
-import { ClipboardList, Clock, BarChart3, Download, FileSpreadsheet } from 'lucide-react';
+import { ClipboardList, Clock, BarChart3, Download, LogOut } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: 'record' | 'history' | 'summary';
   onTabChange: (tab: 'record' | 'history' | 'summary') => void;
   onExportClick?: () => void;
+  onLogout?: () => void;
   lowStockCount?: number;
   borrowedCount?: number;
 }
@@ -13,6 +14,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
   onExportClick,
+  onLogout,
   lowStockCount = 0,
   borrowedCount = 0,
 }) => {
@@ -27,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)',
       }}
     >
-      <div className="max-w-md sm:max-w-xl mx-auto px-2 sm:px-3 py-1 flex items-center justify-between gap-1 sm:gap-1.5">
+      <div className="max-w-lg sm:max-w-2xl mx-auto px-1.5 sm:px-3 py-1 flex items-center justify-between gap-1 sm:gap-1.5">
         {/* Tab 1: คีย์ข้อมูล */}
         <button
           type="button"
@@ -112,6 +114,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           >
             <Download className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-700" />
             <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">ส่งออก CSV</span>
+          </button>
+        )}
+
+        {/* Tab 5: ออกจากระบบ */}
+        {onLogout && (
+          <button
+            type="button"
+            id="bottom-nav-logout"
+            onClick={onLogout}
+            className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1 px-1 sm:px-2 rounded-xl transition-all duration-150 min-h-[44px] active:scale-95 text-rose-600 hover:text-rose-800 hover:bg-rose-50/90 border border-rose-200/70 font-semibold bg-rose-50/30"
+            title="ออกจากระบบ / สลับผู้ใช้งาน"
+          >
+            <LogOut className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-600" />
+            <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">ออกจากระบบ</span>
           </button>
         )}
       </div>

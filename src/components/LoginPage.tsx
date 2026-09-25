@@ -1,17 +1,26 @@
 import React, { useState } from 'react';
-import { UserCheck, HeartHandshake, Activity } from 'lucide-react';
+import { UserCheck, HeartHandshake, Activity, WifiOff } from 'lucide-react';
 
 interface LoginPageProps {
   initialUser?: string;
   onLogin: (userName: string) => void;
+  isOnline?: boolean;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ initialUser = '', onLogin }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({
+  initialUser = '',
+  onLogin,
+  isOnline = true,
+}) => {
   const [name, setName] = useState(initialUser || '');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOnline) {
+      setError('ไม่สามารถเข้าสู่ระบบขณะออฟไลน์ได้ กรุณาเชื่อมต่ออินเทอร์เน็ต');
+      return;
+    }
     const clean = name.trim();
     if (!clean) {
       setError('กรุณาระบุชื่อผู้บันทึกก่อนเข้าสู่ระบบ');
@@ -85,13 +94,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialUser = '', onLogin 
 
             {/* Submit Button */}
             <div className="pt-1">
+              {!isOnline && (
+                <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                  <WifiOff className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>ระบบไม่อนุญาตให้ใช้งานขณะออฟไลน์ กรุณาเชื่อมต่ออินเทอร์เน็ต</span>
+                </div>
+              )}
               <button
                 type="submit"
                 id="btn-login-submit"
-                className="w-full min-h-[48px] py-3.5 px-6 rounded-2xl bg-purple-700 hover:bg-purple-800 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-purple-700/20 transition flex items-center justify-center gap-2"
+                disabled={!isOnline}
+                className={`w-full min-h-[48px] py-3.5 px-6 rounded-2xl font-bold text-base shadow-lg transition flex items-center justify-center gap-2 ${
+                  isOnline
+                    ? 'bg-purple-700 hover:bg-purple-800 active:scale-[0.99] text-white shadow-purple-700/20 cursor-pointer'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                }`}
               >
                 <UserCheck className="w-5 h-5" />
-                <span>เข้าสู่ระบบบันทึกข้อมูล</span>
+                <span>{isOnline ? 'เข้าสู่ระบบบันทึกข้อมูล' : 'ไม่สามารถเข้าสู่ระบบขณะออฟไลน์'}</span>
               </button>
             </div>
 

@@ -10,6 +10,7 @@ interface HeaderProps {
   onLogout?: () => void;
   lowStockCount: number;
   borrowedCount: number;
+  isOnline?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   lowStockCount,
   borrowedCount,
+  isOnline = true,
 }) => {
   return (
     <header className="bg-white border-b border-purple-200/80 sticky top-0 z-40 shadow-xs backdrop-blur-md">
@@ -39,13 +41,23 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-[10px] font-semibold bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded-full border border-purple-200/70 whitespace-nowrap">
                   Aging Ward
                 </span>
-                <span
-                  className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.2 rounded-full border border-emerald-200/80 whitespace-nowrap"
-                  title="เชื่อมต่อฐานข้อมูล Firebase Firestore โปรเจกต์ stockMUNAaging แบบเรียลไทม์"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>stockMUNAaging</span>
-                </span>
+                {isOnline ? (
+                  <span
+                    className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200/80 whitespace-nowrap"
+                    title="เชื่อมต่อฐานข้อมูล Firebase Firestore โปรเจกต์ stockMUNAaging แบบเรียลไทม์"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>ออนไลน์ (stockMUNAaging)</span>
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full border border-rose-300 whitespace-nowrap animate-pulse"
+                    title="ไม่มีการเชื่อมต่อเครือข่าย - ปิดกั้นการใช้งาน"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                    <span>ออฟไลน์ (ระงับการใช้งาน)</span>
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block truncate">
                 ระบบจัดการคลังของใช้และบันทึกหัตถการผู้ป่วย • หอผู้ป่วยผู้สูงอายุ
