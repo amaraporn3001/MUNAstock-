@@ -39,13 +39,39 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'low' | 'borrowed'>('all');
 
+  // Helper to get active deleted record IDs
+  const getDeletedRecordIdsSet = (): Set<string> => {
+    try {
+      const saved = localStorage.getItem('aging_ward_deleted_record_ids');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch {
+      // ignore
+    }
+    return new Set<string>();
+  };
+
   // Calculate current balances for the selected bed
   const summaryData = useMemo(() => {
     if (!selectedPerson) return { itemsList: [], diaperAvg: null, underpadAvg: null };
 
-    // Filter transactions for this bed
+    const deletedSet = getDeletedRecordIdsSet();
+
+    // Filter transactions for this bed (strictly excluding any deleted records)
     const personRecords = records
-      .filter((r) => r.person_name === selectedPerson && r.record_type === 'transaction')
+      .filter(
+        (r) =>
+          r &&
+          r.id &&
+          !deletedSet.has(r.id) &&
+          !r.is_deleted &&
+          !r.deleted &&
+          r.status !== 'deleted' &&
+          r.person_name === selectedPerson &&
+          r.record_type === 'transaction'
+      )
       .sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
 
     const totals: Record<string, number> = {};
@@ -167,10 +193,19 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
   const wardStats = useMemo(() => {
     let totalBorrowedCount = 0;
     let totalLowCount = 0;
+    const deletedSet = getDeletedRecordIdsSet();
 
     persons.forEach((person) => {
       const pRecords = records.filter(
-        (r) => r.person_name === person && r.record_type === 'transaction'
+        (r) =>
+          r &&
+          r.id &&
+          !deletedSet.has(r.id) &&
+          !r.is_deleted &&
+          !r.deleted &&
+          r.status !== 'deleted' &&
+          r.person_name === person &&
+          r.record_type === 'transaction'
       );
       const totals: Record<string, number> = {};
       pRecords.forEach((r) => {

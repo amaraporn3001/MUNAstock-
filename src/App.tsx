@@ -114,18 +114,50 @@ export default function App() {
 
   // All Records
   const [records, setRecords] = useState<StockRecord[]>(() => {
+    let deletedSet = new Set<string>();
+    try {
+      const savedDel = localStorage.getItem('aging_ward_deleted_record_ids');
+      if (savedDel) {
+        const arr = JSON.parse(savedDel);
+        if (Array.isArray(arr)) deletedSet = new Set(arr);
+      }
+    } catch {
+      // ignore
+    }
+
     const saved = localStorage.getItem('aging_ward_records');
     if (saved) {
       try {
         const parsed: StockRecord[] = JSON.parse(saved);
         return parsed.filter(
-          (r) => !isPermanentlyRemovedItem(r.item_name, r.record_type)
+          (r) =>
+            r &&
+            r.id &&
+            !deletedSet.has(r.id) &&
+            !r.is_deleted &&
+            !r.deleted &&
+            r.status !== 'deleted' &&
+            !isPermanentlyRemovedItem(r.item_name, r.record_type)
         );
       } catch {
         return [];
       }
     }
     return INITIAL_SEED_RECORDS;
+  });
+
+  // Persistent tracking of confirmed deleted record IDs
+  const [deletedRecordIds, setDeletedRecordIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('aging_ward_deleted_record_ids');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch {
+      // ignore
+    }
+    return new Set<string>();
   });
 
   // Selected bed across tabs
@@ -178,8 +210,26 @@ export default function App() {
     try {
       unsubscribeRecords = subscribeToStockRecords(
         (firestoreRecords) => {
+          let currentDeleted = new Set<string>();
+          try {
+            const savedDel = localStorage.getItem('aging_ward_deleted_record_ids');
+            if (savedDel) {
+              const arr = JSON.parse(savedDel);
+              if (Array.isArray(arr)) currentDeleted = new Set(arr);
+            }
+          } catch {
+            // ignore
+          }
+
           const validRecords = firestoreRecords.filter(
-            (r) => !isPermanentlyRemovedItem(r.item_name, r.record_type)
+            (r) =>
+              r &&
+              r.id &&
+              !currentDeleted.has(r.id) &&
+              !r.is_deleted &&
+              !r.deleted &&
+              r.status !== 'deleted' &&
+              !isPermanentlyRemovedItem(r.item_name, r.record_type)
           );
           setRecords(validRecords);
         },
@@ -279,11 +329,24 @@ export default function App() {
     });
   };
 
-  // Record deletion (removes from state and Firestore)
+  // Record deletion (removes from state and Firestore, records to confirmed deleted ids)
   const handleDeleteConfirm = () => {
     if (!requireOnline('ลบข้อมูล')) return;
     if (!deleteTarget) return;
     const targetId = deleteTarget.id;
+
+    // Track confirmed deleted record ID in state & localStorage so it is never included in History or CSV export
+    setDeletedRecordIds((prev) => {
+      const updated = new Set(prev);
+      updated.add(targetId);
+      try {
+        localStorage.setItem('aging_ward_deleted_record_ids', JSON.stringify(Array.from(updated)));
+      } catch (err) {
+        console.warn('Failed saving deleted_record_ids:', err);
+      }
+      return updated;
+    });
+
     setRecords((prev) => prev.filter((r) => r.id !== targetId));
     setIsDeleteModalOpen(false);
     setDeleteTarget(null);
@@ -539,6 +602,7 @@ export default function App() {
               records={records}
               persons={persons}
               items={items}
+              deletedRecordIds={Array.from(deletedRecordIds)}
               onDeleteRequest={(rec) => {
                 setDeleteTarget(rec);
                 setIsDeleteModalOpen(true);
@@ -604,6 +668,7 @@ export default function App() {
         persons={persons}
         items={items}
         selectedPerson={selectedPerson}
+        deletedRecordIds={Array.from(deletedRecordIds)}
       />
 
       {/* Staff Login / Switch Modal */}

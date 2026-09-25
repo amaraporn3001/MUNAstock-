@@ -33,6 +33,9 @@ export interface StockRecord {
   supplies_used?: string; // JSON string of supplies map
   wound_location?: string;
   notes?: string;
+  status?: string;
+  is_deleted?: boolean;
+  deleted?: boolean;
 }
 
 export interface BedSummaryItem {

@@ -21,6 +21,7 @@ interface HistoryTabProps {
   records: StockRecord[];
   persons: string[];
   items?: ItemDefinition[];
+  deletedRecordIds?: string[];
   onDeleteRequest: (record: StockRecord) => void;
   onUpdateRecord?: (record: StockRecord) => void;
 }
@@ -29,6 +30,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   records,
   persons,
   items = [],
+  deletedRecordIds = [],
   onDeleteRequest,
   onUpdateRecord,
 }) => {
@@ -61,10 +63,34 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     }
   };
 
-  // Filter records
+  // Helper to get active non-deleted records
+  const getDeletedRecordIdsSet = (): Set<string> => {
+    const s = new Set<string>(deletedRecordIds);
+    try {
+      const saved = localStorage.getItem('aging_ward_deleted_record_ids');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          arr.forEach((id) => s.add(id));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return s;
+  };
+
+  // Filter records (strictly excluding any confirmed deleted records)
   const filteredRecords = useMemo(() => {
+    const deletedSet = getDeletedRecordIdsSet();
     return records
       .filter((r) => {
+        if (!r || !r.id) return false;
+        // Never include any confirmed deleted record
+        if (deletedSet.has(r.id) || r.is_deleted || r.deleted || r.status === 'deleted') {
+          return false;
+        }
+
         if (selectedPerson && r.person_name !== selectedPerson) return false;
         if (selectedType && r.record_type !== selectedType) return false;
         if (fromDate && r.timestamp.slice(0, 10) < fromDate) return false;
@@ -84,7 +110,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         return true;
       })
       .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-  }, [records, selectedPerson, selectedType, fromDate, toDate, searchQuery]);
+  }, [records, selectedPerson, selectedType, fromDate, toDate, searchQuery, deletedRecordIds]);
 
   // Export CSV
   const handleExportCSV = () => {

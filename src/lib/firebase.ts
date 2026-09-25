@@ -67,6 +67,10 @@ export function subscribeToStockRecords(
         const records: StockRecord[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as StockRecord;
+          // Filter out any documents that are flagged as deleted
+          if (data && (data.is_deleted || data.deleted || data.status === 'deleted')) {
+            return;
+          }
           records.push({
             ...data,
             id: docSnap.id,
@@ -109,6 +113,12 @@ export async function deleteRecordFromFirestore(recordId: string): Promise<void>
   assertOnline();
   try {
     const recordRef = doc(db, COLLECTIONS.RECORDS, recordId);
+    // Mark as deleted in case deleteDoc is in-flight or cached
+    try {
+      await setDoc(recordRef, { status: 'deleted', is_deleted: true, deleted: true }, { merge: true });
+    } catch {
+      // ignore
+    }
     await deleteDoc(recordRef);
   } catch (err) {
     console.error('Failed to delete record from Firestore:', err);

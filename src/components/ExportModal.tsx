@@ -9,6 +9,7 @@ interface ExportModalProps {
   persons: string[];
   items: ItemDefinition[];
   selectedPerson?: string;
+  deletedRecordIds?: string[];
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -18,6 +19,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   persons,
   items,
   selectedPerson,
+  deletedRecordIds = [],
 }) => {
   const [exportType, setExportType] = useState<'history' | 'all_patients_stock' | 'patient_stock'>('history');
   const [dateFilter, setDateFilter] = useState<'today' | '7days' | 'month' | 'all'>('today');
@@ -28,9 +30,40 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Retrieve comprehensive set of confirmed deleted record IDs
+  const getDeletedRecordIdsSet = (): Set<string> => {
+    const s = new Set<string>(deletedRecordIds);
+    try {
+      const saved = localStorage.getItem('aging_ward_deleted_record_ids');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          arr.forEach((id) => s.add(id));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return s;
+  };
+
+  // Get active valid records (strictly excluding any confirmed deleted records)
+  const getActiveRecords = (): StockRecord[] => {
+    const deletedSet = getDeletedRecordIdsSet();
+    return records.filter(
+      (r) =>
+        r &&
+        r.id &&
+        !deletedSet.has(r.id) &&
+        !r.is_deleted &&
+        !r.deleted &&
+        r.status !== 'deleted'
+    );
+  };
+
   // Filter records according to selection
   const getFilteredRecords = () => {
-    let filtered = [...records];
+    let filtered = getActiveRecords();
 
     // Person filter
     if (targetPerson) {
@@ -41,31 +74,47 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     const now = new Date();
     if (dateFilter === 'today') {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      filtered = filtered.filter((r) => r.timestamp >= todayStart);
+      filtered = filtered.filter((r) => {
+        const t = new Date(r.timestamp).getTime();
+        return !isNaN(t) && t >= todayStart;
+      });
     } else if (dateFilter === '7days') {
       const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
-      filtered = filtered.filter((r) => r.timestamp >= sevenDaysAgo);
+      filtered = filtered.filter((r) => {
+        const t = new Date(r.timestamp).getTime();
+        return !isNaN(t) && t >= sevenDaysAgo;
+      });
     } else if (dateFilter === 'month') {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      filtered = filtered.filter((r) => r.timestamp >= monthStart);
+      filtered = filtered.filter((r) => {
+        const t = new Date(r.timestamp).getTime();
+        return !isNaN(t) && t >= monthStart;
+      });
     } else if (customFrom || customTo) {
       if (customFrom) {
         const fromTs = new Date(customFrom).setHours(0, 0, 0, 0);
-        filtered = filtered.filter((r) => r.timestamp >= fromTs);
+        filtered = filtered.filter((r) => {
+          const t = new Date(r.timestamp).getTime();
+          return !isNaN(t) && t >= fromTs;
+        });
       }
       if (customTo) {
         const toTs = new Date(customTo).setHours(23, 59, 59, 999);
-        filtered = filtered.filter((r) => r.timestamp <= toTs);
+        filtered = filtered.filter((r) => {
+          const t = new Date(r.timestamp).getTime();
+          return !isNaN(t) && t <= toTs;
+        });
       }
     }
 
-    return filtered.sort((a, b) => b.timestamp - a.timestamp);
+    return filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   };
 
   const handleExport = () => {
     let csvContent = '';
     let fileName = '';
     const dateStamp = new Date().toISOString().slice(0, 10);
+    const activeRecords = getActiveRecords();
 
     if (exportType === 'history') {
       const data = getFilteredRecords();
@@ -92,8 +141,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             ? 'รับเข้าสต็อก'
             : r.action_type === 'withdraw'
             ? 'เบิกใช้'
-            : r.action_type === 'borrow'
-            ? 'ยืมแผนก'
             : 'ทำหัตถการ';
 
         let suppliesStr = '';
@@ -125,12 +172,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
       fileName = `aging-ward-history-${targetPerson ? targetPerson + '-' : ''}${dateStamp}.csv`;
     } else if (exportType === 'all_patients_stock') {
-      // Matrix: Patients x Items
+      // Matrix: Patients x Items (computed from active records only)
       const itemNames = items.map((i) => i.name);
       const headers = ['ชื่อผู้ป่วย', ...itemNames.map((name) => `"${name}"`)];
 
       const rows = persons.map((person) => {
-        const pRecords = records.filter(
+        const pRecords = activeRecords.filter(
           (r) => r.person_name === person && r.record_type === 'transaction'
         );
         const balances: Record<string, number> = {};
@@ -147,7 +194,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       fileName = `aging-ward-stock-all-patients-${dateStamp}.csv`;
     } else if (exportType === 'patient_stock') {
       const personToUse = targetPerson || persons[0];
-      const pRecords = records.filter(
+      const pRecords = activeRecords.filter(
         (r) => r.person_name === personToUse && r.record_type === 'transaction'
       );
       const balances: Record<string, number> = {};
