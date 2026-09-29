@@ -27,6 +27,7 @@ interface RecordTabProps {
   onSelectPerson: (person: string) => void;
   onAddRecord: (record: Omit<StockRecord, 'id'>) => void;
   onOpenManagePatients?: () => void;
+  onOpenAppointments?: () => void;
 }
 
 export const RecordTab: React.FC<RecordTabProps> = ({
@@ -38,6 +39,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
   onSelectPerson,
   onAddRecord,
   onOpenManagePatients,
+  onOpenAppointments,
 }) => {
   const [subTab, setSubTab] = useState<'stock' | 'procedure'>('stock');
   const [selectedItemName, setSelectedItemName] = useState<string>('');
@@ -443,17 +445,31 @@ export const RecordTab: React.FC<RecordTabProps> = ({
           <label className="block text-xs sm:text-sm font-bold text-slate-800">
             เลือกชื่อผู้ป่วย <span className="text-rose-500">*</span>
           </label>
-          {onOpenManagePatients && (
-            <button
-              type="button"
-              onClick={onOpenManagePatients}
-              className="text-2xs sm:text-xs text-purple-700 hover:text-purple-900 bg-purple-50/80 hover:bg-purple-100/80 px-2 py-0.5 rounded-lg border border-purple-200/60 transition font-semibold flex items-center gap-1"
-              title="เพิ่มหรือลบรายชื่อผู้ป่วยในหอผู้ป่วย"
-            >
-              <UserPlus className="w-3 h-3 text-purple-500" />
-              <span>เพิ่ม/ลบรายชื่อผู้ป่วย</span>
-            </button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {onOpenAppointments && (
+              <button
+                type="button"
+                id="btn-record-appointments"
+                onClick={onOpenAppointments}
+                className="text-2xs sm:text-xs text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100/90 px-2 py-0.5 rounded-lg border border-purple-200/80 transition font-semibold flex items-center gap-1 shadow-2xs"
+                title="ดูนัดหมาย Google Calendar"
+              >
+                <Calendar className="w-3 h-3 text-purple-600" />
+                <span>ดูนัดหมาย</span>
+              </button>
+            )}
+            {onOpenManagePatients && (
+              <button
+                type="button"
+                onClick={onOpenManagePatients}
+                className="text-2xs sm:text-xs text-purple-700 hover:text-purple-900 bg-purple-50/80 hover:bg-purple-100/80 px-2 py-0.5 rounded-lg border border-purple-200/60 transition font-semibold flex items-center gap-1"
+                title="เพิ่มหรือลบรายชื่อผู้ป่วยในหอผู้ป่วย"
+              >
+                <UserPlus className="w-3 h-3 text-purple-500" />
+                <span>เพิ่ม/ลบรายชื่อผู้ป่วย</span>
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
           <div className="sm:col-span-2">

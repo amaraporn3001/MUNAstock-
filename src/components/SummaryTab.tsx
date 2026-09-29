@@ -16,6 +16,7 @@ import {
   User,
   Info,
   Download,
+  Calendar,
 } from 'lucide-react';
 
 interface SummaryTabProps {
@@ -26,6 +27,7 @@ interface SummaryTabProps {
   onSelectPerson: (person: string) => void;
   onQuickAction: (person: string, itemName: string, type: 'receive' | 'withdraw') => void;
   onOpenExport?: () => void;
+  onOpenAppointments?: () => void;
 }
 
 export const SummaryTab: React.FC<SummaryTabProps> = ({
@@ -36,6 +38,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
   onSelectPerson,
   onQuickAction,
   onOpenExport,
+  onOpenAppointments,
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'low' | 'borrowed'>('all');
 
@@ -316,10 +319,22 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 hidden sm:inline">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-400 hidden sm:inline mr-1">
                 ผู้ป่วย: <strong className="text-purple-600 font-semibold">{selectedPerson}</strong>
               </span>
+              {onOpenAppointments && (
+                <button
+                  type="button"
+                  id="btn-summary-appointments"
+                  onClick={onOpenAppointments}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold border border-purple-200/80 transition shadow-2xs"
+                  title="ดูนัดหมาย Google Calendar"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                  <span>ดูนัดหมาย</span>
+                </button>
+              )}
               {onOpenExport && (
                 <button
                   type="button"

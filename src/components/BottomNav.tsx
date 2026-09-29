@@ -1,9 +1,10 @@
 import React from 'react';
-import { ClipboardList, Clock, BarChart3, Download, LogOut } from 'lucide-react';
+import { ClipboardList, Clock, BarChart3, Download, LogOut, Calendar } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: 'record' | 'history' | 'summary';
   onTabChange: (tab: 'record' | 'history' | 'summary') => void;
+  onOpenAppointments?: () => void;
   onExportClick?: () => void;
   onLogout?: () => void;
   lowStockCount?: number;
@@ -13,6 +14,7 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
+  onOpenAppointments,
   onExportClick,
   onLogout,
   lowStockCount = 0,
@@ -103,7 +105,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           )}
         </button>
 
-        {/* Tab 4: ส่งออก CSV (ปุ่มลัดขอบล่างจอ) */}
+        {/* Tab 4: ดูนัดหมาย (เมนูลัด Google Calendar) */}
+        {onOpenAppointments && (
+          <button
+            type="button"
+            id="bottom-nav-appointments"
+            onClick={onOpenAppointments}
+            className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1 px-1 sm:px-2 rounded-xl transition-all duration-150 min-h-[44px] active:scale-95 text-purple-700 hover:text-purple-900 hover:bg-purple-100/70 border border-purple-200/90 font-semibold bg-purple-50/60"
+            title="ดูนัดหมาย Google Calendar"
+          >
+            <Calendar className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-600" />
+            <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">ดูนัดหมาย</span>
+          </button>
+        )}
+
+        {/* Tab 5: ส่งออก CSV (ปุ่มลัดขอบล่างจอ) */}
         {onExportClick && (
           <button
             type="button"

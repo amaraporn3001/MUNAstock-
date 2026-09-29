@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, User, LogOut, Settings, Clock, ClipboardList, BarChart3, AlertTriangle } from 'lucide-react';
+import { Package, User, LogOut, Settings, Clock, ClipboardList, BarChart3, AlertTriangle, Calendar } from 'lucide-react';
 
 interface HeaderProps {
   currentUser: string;
@@ -7,6 +7,7 @@ interface HeaderProps {
   onTabChange: (tab: 'record' | 'history' | 'summary') => void;
   onOpenManage: () => void;
   onOpenUserModal: () => void;
+  onOpenAppointments?: () => void;
   onLogout?: () => void;
   lowStockCount: number;
   borrowedCount: number;
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
   onOpenManage,
   onOpenUserModal,
+  onOpenAppointments,
   onLogout,
   lowStockCount,
   borrowedCount,
@@ -113,12 +115,38 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                   )}
                 </button>
+
+                {onOpenAppointments && (
+                  <button
+                    type="button"
+                    id="nav-tab-appointments"
+                    onClick={onOpenAppointments}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all text-purple-700 hover:text-purple-900 hover:bg-purple-100/70"
+                    title="ดูนัดหมาย Google Calendar"
+                  >
+                    <Calendar className="w-4 h-4 text-purple-600" />
+                    <span>ดูนัดหมาย</span>
+                  </button>
+                )}
               </nav>
             )}
 
             {/* Quick Actions & User Pill */}
             {currentUser ? (
               <div className="flex items-center gap-1 sm:gap-2">
+                {onOpenAppointments && (
+                  <button
+                    type="button"
+                    id="btn-header-appointments"
+                    onClick={onOpenAppointments}
+                    title="ดูนัดหมาย (Google Calendar)"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 bg-purple-50/90 hover:bg-purple-100 text-purple-700 hover:text-purple-900 rounded-xl border border-purple-200/80 transition text-xs font-bold shadow-2xs min-h-[38px]"
+                  >
+                    <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="hidden sm:inline">ดูนัดหมาย</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={onOpenManage}

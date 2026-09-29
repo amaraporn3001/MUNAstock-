@@ -15,6 +15,7 @@ import { SummaryTab } from './components/SummaryTab';
 import { DeleteModal } from './components/DeleteModal';
 import { ManageModal } from './components/ManageModal';
 import { ExportModal } from './components/ExportModal';
+import { AppointmentsModal } from './components/AppointmentsModal';
 import { OfflineBlocker } from './components/OfflineBlocker';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import {
@@ -181,6 +182,9 @@ export default function App() {
 
   // Export CSV modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+
+  // Appointments (Google Calendar) modal state
+  const [isAppointmentsModalOpen, setIsAppointmentsModalOpen] = useState<boolean>(false);
 
   // Sync to localStorage
   useEffect(() => {
@@ -568,6 +572,7 @@ export default function App() {
           setIsManageModalOpen(true);
         }}
         onOpenUserModal={() => setIsLoginModalOpen(true)}
+        onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
         onLogout={handleLogout}
         lowStockCount={lowStockCount}
         borrowedCount={borrowedCount}
@@ -591,6 +596,7 @@ export default function App() {
                 setManageModalTab('patients');
                 setIsManageModalOpen(true);
               }}
+              onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
             />
           </div>
         )}
@@ -623,6 +629,7 @@ export default function App() {
               onSelectPerson={setSelectedPerson}
               onQuickAction={handleQuickAction}
               onOpenExport={() => setIsExportModalOpen(true)}
+              onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
             />
           </div>
         )}
@@ -650,14 +657,22 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Quick Bottom Navigation Bar (คีย์ข้อมูล, ประวัติ, สรุปยอด, ส่งออก CSV, ออกจากระบบ) */}
+      {/* Quick Bottom Navigation Bar (คีย์ข้อมูล, ประวัติ, สรุปยอด, ดูนัดหมาย, ส่งออก CSV, ออกจากระบบ) */}
       <BottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
         onExportClick={() => setIsExportModalOpen(true)}
         onLogout={handleLogout}
         lowStockCount={lowStockCount}
         borrowedCount={borrowedCount}
+      />
+
+      {/* Appointments (Google Calendar) Modal */}
+      <AppointmentsModal
+        isOpen={isAppointmentsModalOpen}
+        onClose={() => setIsAppointmentsModalOpen(false)}
+        defaultDate="2026-10-07"
       />
 
       {/* CSV Export Modal */}
