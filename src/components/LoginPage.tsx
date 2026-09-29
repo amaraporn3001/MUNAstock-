@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { UserCheck, HeartHandshake, Activity, WifiOff } from 'lucide-react';
+import { UserCheck, HeartHandshake, Activity, WifiOff, Calendar, Eye, ShieldCheck } from 'lucide-react';
 
 interface LoginPageProps {
   initialUser?: string;
   onLogin: (userName: string) => void;
+  onOpenAppointments?: () => void;
   isOnline?: boolean;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
   initialUser = '',
   onLogin,
+  onOpenAppointments,
   isOnline = true,
 }) => {
   const [name, setName] = useState(initialUser || '');
@@ -114,6 +116,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <span>{isOnline ? 'เข้าสู่ระบบบันทึกข้อมูล' : 'ไม่สามารถเข้าสู่ระบบขณะออฟไลน์'}</span>
               </button>
             </div>
+
+            {/* Quick action: View appointments without login (Read-Only) */}
+            {onOpenAppointments && (
+              <div className="pt-3 border-t border-purple-100/80">
+                <button
+                  type="button"
+                  id="btn-login-view-appointments"
+                  onClick={onOpenAppointments}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 hover:text-purple-900 border border-purple-200/90 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-2xs cursor-pointer active:scale-98"
+                >
+                  <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span>ดูนัดหมาย (Google Calendar) โดยไม่ต้องลงชื่อเข้าใช้</span>
+                </button>
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 mt-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>โหมดเรียกดูอย่างเดียว (Read-Only) • ไม่สามารถแก้ไขปฏิทินได้</span>
+                </div>
+              </div>
+            )}
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-center">
               <p className="text-[11px] text-slate-500 leading-relaxed">

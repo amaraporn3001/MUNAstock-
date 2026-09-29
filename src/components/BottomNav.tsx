@@ -1,9 +1,9 @@
 import React from 'react';
-import { ClipboardList, Clock, BarChart3, Download, LogOut, Calendar } from 'lucide-react';
+import { ClipboardList, BarChart3, Download, LogOut, Calendar } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'record' | 'history' | 'summary';
-  onTabChange: (tab: 'record' | 'history' | 'summary') => void;
+  activeTab: 'record' | 'summary';
+  onTabChange: (tab: 'record' | 'summary') => void;
   onOpenAppointments?: () => void;
   onExportClick?: () => void;
   onLogout?: () => void;
@@ -32,7 +32,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       }}
     >
       <div className="max-w-lg sm:max-w-2xl mx-auto px-1.5 sm:px-3 py-1 flex items-center justify-between gap-1 sm:gap-1.5">
-        {/* Tab 1: คีย์ข้อมูล */}
+        {/* Tab 1: คีย์ข้อมูล (รวมประวัติไว้ด้านล่าง) */}
         <button
           type="button"
           id="bottom-nav-record"
@@ -50,25 +50,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">คีย์ข้อมูล</span>
         </button>
 
-        {/* Tab 2: ประวัติ */}
-        <button
-          type="button"
-          id="bottom-nav-history"
-          onClick={() => {
-            onTabChange('history');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1 px-1 sm:px-2 rounded-xl transition-all duration-150 min-h-[44px] active:scale-95 ${
-            activeTab === 'history'
-              ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-sm shadow-purple-300/30 font-bold'
-              : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50/70 font-medium'
-          }`}
-        >
-          <Clock className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${activeTab === 'history' ? 'text-white' : 'text-slate-400'}`} />
-          <span className="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">ประวัติ</span>
-        </button>
-
-        {/* Tab 3: สรุปยอด */}
+        {/* Tab 2: สรุปยอด */}
         <button
           type="button"
           id="bottom-nav-summary"

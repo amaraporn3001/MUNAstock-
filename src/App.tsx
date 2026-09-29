@@ -17,6 +17,7 @@ import { ManageModal } from './components/ManageModal';
 import { ExportModal } from './components/ExportModal';
 import { AppointmentsModal } from './components/AppointmentsModal';
 import { OfflineBlocker } from './components/OfflineBlocker';
+import { Clock } from 'lucide-react';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import {
   subscribeToStockRecords,
@@ -45,16 +46,19 @@ export default function App() {
 
   // Current user / shift nurse
   const [currentUser, setCurrentUser] = useState<string>(() => {
-    return localStorage.getItem('aging_ward_user') || '';
+    return sessionStorage.getItem('aging_ward_user') || localStorage.getItem('aging_ward_user') || '';
   });
   // Login status - check if logged in before entering the system
+  // Stored in sessionStorage so closing the application window logs out immediately
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('aging_ward_is_logged_in') === 'true';
+    // Clear any lingering localStorage auth flag
+    localStorage.removeItem('aging_ward_is_logged_in');
+    return sessionStorage.getItem('aging_ward_is_logged_in') === 'true';
   });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
 
-  // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'record' | 'history' | 'summary'>('record');
+  // Active navigation tab (หน้าคีย์ข้อมูลรวมประวัติไว้ด้านล่าง และ หน้าสรุปยอด)
+  const [activeTab, setActiveTab] = useState<'record' | 'summary'>('record');
 
   // Persons / Patients of Aging Ward (Dynamic state synced with LocalStorage & Firestore)
   const [persons, setPersons] = useState<string[]>(() => {
@@ -515,14 +519,25 @@ export default function App() {
     if (!clean) return;
     setCurrentUser(clean);
     setIsLoggedIn(true);
-    localStorage.setItem('aging_ward_is_logged_in', 'true');
+    // Store login status in sessionStorage so closing the window/app immediately terminates the session
+    sessionStorage.setItem('aging_ward_is_logged_in', 'true');
+    sessionStorage.setItem('aging_ward_user', clean);
     localStorage.setItem('aging_ward_user', clean);
+    localStorage.removeItem('aging_ward_is_logged_in');
   };
 
   // Staff logout handler (return to login screen)
   const handleLogout = () => {
     setIsLoggedIn(false);
+    sessionStorage.removeItem('aging_ward_is_logged_in');
+    sessionStorage.removeItem('aging_ward_user');
     localStorage.removeItem('aging_ward_is_logged_in');
+  };
+
+  // Tab change handler
+  const handleTabChange = (tab: 'record' | 'summary') => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Reset to default seed
@@ -554,7 +569,16 @@ export default function App() {
     return (
       <>
         {offlineBlockerElement}
-        <LoginPage initialUser={currentUser} onLogin={handleLogin} isOnline={isOnline} />
+        <LoginPage
+          initialUser={currentUser}
+          onLogin={handleLogin}
+          onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
+          isOnline={isOnline}
+        />
+        <AppointmentsModal
+          isOpen={isAppointmentsModalOpen}
+          onClose={() => setIsAppointmentsModalOpen(false)}
+        />
       </>
     );
   }
@@ -566,7 +590,7 @@ export default function App() {
       <Header
         currentUser={currentUser}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onOpenManage={() => {
           setManageModalTab('patients');
           setIsManageModalOpen(true);
@@ -581,9 +605,9 @@ export default function App() {
 
       {/* Main Container - compact spacing to minimize scrolling */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-5 py-2 sm:py-3 pb-20 sm:pb-24">
-        {/* TAB: Record */}
+        {/* TAB: Record (ยุบรวม คีย์ข้อมูล และ ฟังก์ชั่นประวัติ อยู่ในหน้าเดียวกัน โดยประวัติอยู่ด้านล่าง) */}
         {activeTab === 'record' && (
-          <div id="page-record">
+          <div id="page-record" className="space-y-6">
             <RecordTab
               persons={persons}
               items={items}
@@ -598,23 +622,43 @@ export default function App() {
               }}
               onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
             />
-          </div>
-        )}
 
-        {/* TAB: History */}
-        {activeTab === 'history' && (
-          <div id="page-history">
-            <HistoryTab
-              records={records}
-              persons={persons}
-              items={items}
-              deletedRecordIds={Array.from(deletedRecordIds)}
-              onDeleteRequest={(rec) => {
-                setDeleteTarget(rec);
-                setIsDeleteModalOpen(true);
-              }}
-              onUpdateRecord={handleUpdateRecord}
-            />
+            {/* ฟังก์ชั่นประวัติอยู่ด้านล่าง */}
+            <section
+              id="history-section"
+              className="pt-4 border-t-2 border-dashed border-purple-200/90 scroll-mt-16 space-y-3"
+            >
+              <div className="flex items-center gap-2.5 px-1">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
+                  <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-bold text-slate-800 leading-tight">
+                      ประวัติการบันทึกของใช้ &amp; หัตถการ
+                    </h2>
+                    <span className="text-[11px] font-bold bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full">
+                      {records.filter((r) => !deletedRecordIds.has(r.id)).length} รายการ
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    แสดงรายการบันทึกของใช้และหัตถการย้อนหลัง สามารถค้นหา แก้ไข หรือลบรายการได้
+                  </p>
+                </div>
+              </div>
+
+              <HistoryTab
+                records={records}
+                persons={persons}
+                items={items}
+                deletedRecordIds={Array.from(deletedRecordIds)}
+                onDeleteRequest={(rec) => {
+                  setDeleteTarget(rec);
+                  setIsDeleteModalOpen(true);
+                }}
+                onUpdateRecord={handleUpdateRecord}
+              />
+            </section>
           </div>
         )}
 
@@ -660,7 +704,7 @@ export default function App() {
       {/* Quick Bottom Navigation Bar (คีย์ข้อมูล, ประวัติ, สรุปยอด, ดูนัดหมาย, ส่งออก CSV, ออกจากระบบ) */}
       <BottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onOpenAppointments={() => setIsAppointmentsModalOpen(true)}
         onExportClick={() => setIsExportModalOpen(true)}
         onLogout={handleLogout}
@@ -672,7 +716,6 @@ export default function App() {
       <AppointmentsModal
         isOpen={isAppointmentsModalOpen}
         onClose={() => setIsAppointmentsModalOpen(false)}
-        defaultDate="2026-10-07"
       />
 
       {/* CSV Export Modal */}

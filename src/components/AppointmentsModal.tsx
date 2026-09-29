@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Calendar,
   CalendarDays,
@@ -6,9 +6,13 @@ import {
   X,
   Clock,
   CalendarCheck,
-  ArrowRight,
-  Sparkles,
+  ShieldCheck,
+  Lock,
+  Eye,
   Info,
+  Filter,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 
 interface AppointmentsModalProps {
@@ -20,17 +24,92 @@ interface AppointmentsModalProps {
 export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
   isOpen,
   onClose,
-  defaultDate = '2026-10-07',
+  defaultDate,
 }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(defaultDate);
+  // Helper to get formatted local date YYYY-MM-DD with day offset
+  const getLocalDateString = (offsetDays = 0): string => {
+    const d = new Date();
+    if (offsetDays !== 0) {
+      d.setDate(d.getDate() + offsetDays);
+    }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const yesterdayStr = useMemo(() => getLocalDateString(-1), []);
+  const todayStr = useMemo(() => getLocalDateString(0), []);
+  const tomorrowStr = useMemo(() => getLocalDateString(1), []);
+
+  // Selected date state (defaults to today in real-time if not specified)
+  const [selectedDate, setSelectedDate] = useState<string>(defaultDate || todayStr);
+  const [refreshKey, setRefreshKey] = useState<number>(Date.now());
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  // Real-time live clock
+  const [currentTime, setCurrentTime] = useState<string>(() =>
+    new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const interval = setInterval(() => {
+      setCurrentTime(
+        new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      );
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
+  // Sync if defaultDate changes and modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedDate(defaultDate || todayStr);
+    }
+  }, [isOpen, defaultDate, todayStr]);
 
   if (!isOpen) return null;
 
-  // The primary URL requested by user
-  const requestedCalendarUrl = 'https://calendar.google.com/calendar/u/0/r/day/2026/10/7?pli=1';
+  const isYesterday = selectedDate === yesterdayStr;
+  const isToday = selectedDate === todayStr;
+  const isTomorrow = selectedDate === tomorrowStr;
 
-  // Dynamic URL based on selected date
-  const getCustomDateUrl = (dateStr: string) => {
+  // Ward primary calendar ID
+  const calendarId = 'agingwardmahidol@gmail.com';
+
+  // Convert YYYY-MM-DD to YYYYMMDD
+  const formatDateForEmbed = (dateStr: string) => {
+    return dateStr.replace(/-/g, '');
+  };
+
+  // Get next day string in YYYYMMDD format for Google Calendar embed single-day range
+  const getNextDayEmbedStr = (dateStr: string) => {
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setDate(dt.getDate() + 1);
+      const nextY = dt.getFullYear();
+      const nextM = String(dt.getMonth() + 1).padStart(2, '0');
+      const nextD = String(dt.getDate()).padStart(2, '0');
+      return `${nextY}${nextM}${nextD}`;
+    } catch {
+      return formatDateForEmbed(dateStr);
+    }
+  };
+
+  // Google Calendar Public Embed URL restricted strictly to the single selected date
+  const getDailyEmbedUrl = () => {
+    const startStr = formatDateForEmbed(selectedDate);
+    const endStr = getNextDayEmbedStr(selectedDate);
+    // dates format: YYYYMMDD/YYYYMMDD with mode=AGENDA limits view strictly to that 1 day
+    return `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(
+      calendarId
+    )}&ctz=Asia%2FBangkok&mode=AGENDA&showPrint=0&showTabs=0&showCalendars=0&showTz=0&dates=${startStr}/${endStr}&nocache=${refreshKey}`;
+  };
+
+  // Dynamic day URL in Google Calendar (opens specifically in Day View)
+  const getDailyCalendarWebUrl = (dateStr: string) => {
     try {
       const parts = dateStr.split('-');
       if (parts.length === 3) {
@@ -42,10 +121,10 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
     } catch {
       // fallback
     }
-    return 'https://calendar.google.com/calendar/u/0/r';
+    return `https://calendar.google.com/calendar/u/0/r?pli=1`;
   };
 
-  const dynamicUrl = getCustomDateUrl(selectedDate);
+  const dayWebUrl = getDailyCalendarWebUrl(selectedDate);
 
   // Format thai date for display
   const formatThaiDate = (dateStr: string) => {
@@ -67,16 +146,44 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
     return dateStr;
   };
 
+  // Short Thai date for button badge (e.g. 29 ก.ย.)
+  const formatThaiDateShort = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        const thaiMonthsShort = [
+          'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+          'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+        ];
+        return `${d} ${thaiMonthsShort[m - 1]}`;
+      }
+    } catch {
+      // fallback
+    }
+    return dateStr;
+  };
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setRefreshKey(Date.now());
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="calendar-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-purple-100/90 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150 relative"
+        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-purple-100/90 overflow-hidden flex flex-col max-h-[94vh] animate-in zoom-in-95 duration-150 relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -86,17 +193,26 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
               <Calendar className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 id="calendar-modal-title" className="text-base sm:text-lg font-bold leading-tight">
-                  ดูนัดหมาย (Google Calendar)
+                  ดูนัดหมายประจำวัน
                 </h2>
-                <span className="text-[10px] font-bold bg-white/25 px-2 py-0.5 rounded-full border border-white/30 text-white">
-                  เมนูลัด
+                <span className="text-[10px] font-bold bg-white/25 text-white px-2 py-0.5 rounded-full border border-white/30">
+                  Google Calendar
+                </span>
+                <span className="text-[10px] font-bold bg-purple-900/40 text-purple-100 px-2 py-0.5 rounded-full border border-purple-300/30 flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-purple-200" />
+                  <span>Read-Only ไม่สามารถแก้ไขได้</span>
                 </span>
               </div>
-              <p className="text-xs text-purple-100 mt-0.5">
-                ตารางนัดตรวจ นัดหมายหัตถการ และกิจกรรมผู้ป่วยหอผู้สูงอายุ
-              </p>
+              <div className="flex items-center gap-2 text-xs text-purple-100 mt-0.5">
+                <span>แสดงนัดหมายตามปฏิทินแบบเรียลไทม์</span>
+                <span className="text-purple-300">•</span>
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] bg-purple-900/30 px-2 py-0.2 rounded-md">
+                  <Clock className="w-3 h-3 text-purple-200" />
+                  <span>เวลาปัจจุบัน: {currentTime} น.</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -110,139 +226,225 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Content */}
-        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
-          {/* Main Requested Shortcut Card (7 ต.ค. 2026) */}
-          <div className="bg-gradient-to-br from-purple-50 via-indigo-50/40 to-white p-4 sm:p-4.5 rounded-2xl border border-purple-200/90 shadow-xs relative overflow-hidden group">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full">
-                  <CalendarCheck className="w-3.5 h-3.5" />
-                  <span>นัดหมายที่ระบุ: 7 ตุลาคม 2569</span>
-                </span>
-                <h3 className="text-sm sm:text-base font-bold text-slate-800 pt-0.5">
-                  ตารางนัดหมายประจำวันที่ 7 ต.ค. 2026
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  เปิดดูนัดหมายผู้ป่วยใน Google Calendar ประจำวันที่ระบุโดยตรง
-                </p>
-              </div>
-
-              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                <CalendarDays className="w-5 h-5" />
-              </div>
+        {/* Date Scope Controls: ปุ่มลัด เมื่อวาน, วันนี้, พรุ่งนี้ & วันที่เลือก */}
+        <div className="bg-purple-50/90 border-b border-purple-100 p-3 sm:px-5 space-y-2.5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+              <Filter className="w-3.5 h-3.5 text-purple-600" />
+              <span>ปุ่มลัดเลือกวัน:</span>
             </div>
 
-            <div className="mt-3.5 pt-3 border-t border-purple-100 flex items-center justify-between gap-2">
-              <span className="text-[11px] text-purple-700/80 font-medium truncate max-w-[220px] sm:max-w-xs">
-                {requestedCalendarUrl}
-              </span>
+            {/* Quick Scope Buttons: เมื่อวาน, วันนี้, พรุ่งนี้ */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* เมื่อวาน */}
+              <button
+                type="button"
+                id="btn-scope-yesterday"
+                onClick={() => setSelectedDate(yesterdayStr)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                  isYesterday
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-300/40 ring-2 ring-purple-400/50'
+                    : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100/70'
+                }`}
+                title={`ดูนัดหมายเมื่อวาน (${formatThaiDate(yesterdayStr)})`}
+              >
+                <span>เมื่อวาน</span>
+                <span className={`text-[10px] font-normal px-1.5 py-0.2 rounded-md ${
+                  isYesterday ? 'bg-purple-700/80 text-white' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {formatThaiDateShort(yesterdayStr)}
+                </span>
+              </button>
 
+              {/* วันนี้ (เรียลไทม์) */}
+              <button
+                type="button"
+                id="btn-scope-today"
+                onClick={() => setSelectedDate(todayStr)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                  isToday
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-300/40 ring-2 ring-purple-400/50'
+                    : 'bg-white text-purple-800 border-2 border-purple-300 hover:bg-purple-100/70 font-extrabold'
+                }`}
+                title={`ดูนัดหมายวันนี้ (${formatThaiDate(todayStr)})`}
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${isToday ? 'text-amber-300' : 'text-purple-600'}`} />
+                <span>วันนี้</span>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-md ${
+                  isToday ? 'bg-purple-800/80 text-amber-200' : 'bg-purple-100 text-purple-800'
+                }`}>
+                  {formatThaiDateShort(todayStr)}
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="เรียลไทม์" />
+              </button>
+
+              {/* พรุ่งนี้ */}
+              <button
+                type="button"
+                id="btn-scope-tomorrow"
+                onClick={() => setSelectedDate(tomorrowStr)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                  isTomorrow
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-300/40 ring-2 ring-purple-400/50'
+                    : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100/70'
+                }`}
+                title={`ดูนัดหมายพรุ่งนี้ (${formatThaiDate(tomorrowStr)})`}
+              >
+                <span>พรุ่งนี้</span>
+                <span className={`text-[10px] font-normal px-1.5 py-0.2 rounded-md ${
+                  isTomorrow ? 'bg-purple-700/80 text-white' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {formatThaiDateShort(tomorrowStr)}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Date Picker Input & Live Indicator */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium">หรือระบุวันที่:</span>
+              <input
+                type="date"
+                id="input-appointment-date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="border border-purple-200 rounded-xl px-2.5 py-1 text-xs text-slate-800 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-purple-300 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 hover:bg-purple-100/60 text-purple-700 text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
+                title="รีเฟรชข้อมูลปฏิทินเรียลไทม์"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-purple-600' : ''}`} />
+                <span>รีเฟรช</span>
+              </button>
+
+              <div className="text-xs font-bold text-purple-800 bg-white px-3 py-1 rounded-xl border border-purple-200/80 shadow-2xs flex items-center gap-1.5">
+                <CalendarCheck className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span>
+                  {isToday ? 'วันนี้: ' : isYesterday ? 'เมื่อวาน: ' : isTomorrow ? 'พรุ่งนี้: ' : ''}
+                  {formatThaiDate(selectedDate)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-3 sm:p-5 space-y-4 overflow-y-auto flex-1">
+          {/* Daily Schedule Card for the selected date */}
+          <div className="bg-gradient-to-br from-purple-50/90 via-indigo-50/40 to-white p-4 rounded-2xl border border-purple-200/90 shadow-xs space-y-3">
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                    isToday
+                      ? 'bg-purple-100 text-purple-800 border-purple-300 flex items-center gap-1'
+                      : isYesterday
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : isTomorrow
+                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                      : 'bg-purple-50 text-purple-700 border-purple-200'
+                  }`}>
+                    {isToday && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping mr-0.5" />}
+                    {isToday ? 'นัดหมายวันนี้ (เรียลไทม์)' : isYesterday ? 'นัดหมายเมื่อวาน' : isTomorrow ? 'นัดหมายพรุ่งนี้' : 'นัดหมายวันที่เลือก'}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    แสดงเฉพาะรายการนัดหมาย Google Calendar
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
+                  ตารางนัดหมาย: {formatThaiDate(selectedDate)}
+                </h3>
+              </div>
+
+              {/* Direct Open Button for Google Calendar Day View */}
               <a
-                href={requestedCalendarUrl}
+                href={dayWebUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-400/20 transition active:scale-95 shrink-0"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-300/30 transition active:scale-95 shrink-0"
               >
-                <span>เปิดดูนัดหมาย</span>
+                <span>เปิดใน Google Calendar</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
+
+            <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>
+                เรียกดูได้ทันทีโดยไม่ต้องลงชื่อเข้าใช้ และระบบล็อกเป็นโหมดอ่านอย่างเดียว (ไม่สามารถแก้ไขปฏิทินได้)
+              </span>
+            </div>
           </div>
 
-          {/* Quick Date Selector to view any day's calendar */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-purple-100/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-purple-600" />
-                <span>หรือเลือกวันที่ต้องการดูนัดหมาย:</span>
-              </label>
-              {selectedDate && (
-                <span className="text-[11px] font-semibold text-purple-700">
-                  {formatThaiDate(selectedDate)}
-                </span>
-              )}
+          {/* Embedded Google Calendar for this specific day */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-slate-600 px-1">
+              <span className="font-bold flex items-center gap-1">
+                <CalendarDays className="w-3.5 h-3.5 text-purple-600" />
+                <span>ปฏิทิน Google Calendar ประจำวันที่ {formatThaiDate(selectedDate)}:</span>
+              </span>
+              <span className="text-[11px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/70 font-semibold">
+                Read-Only
+              </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="flex-1 border border-purple-200/90 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium"
+            <div className="relative w-full h-[420px] sm:h-[480px] rounded-2xl overflow-hidden border border-purple-200 shadow-inner bg-slate-50">
+              <iframe
+                key={`${selectedDate}-${refreshKey}`}
+                title={`Google Calendar - ${selectedDate}`}
+                src={getDailyEmbedUrl()}
+                className="w-full h-full border-0"
+                loading="lazy"
               />
-
-              <a
-                href={dynamicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-purple-300 hover:bg-purple-50 text-purple-700 text-xs sm:text-sm font-semibold transition active:scale-95 shrink-0"
-              >
-                <span>เปิดวันที่เลือก</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-
-            {/* Quick date chips */}
-            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-              <span className="text-[11px] text-slate-500 font-medium">ลัดไปที่:</span>
-              <button
-                type="button"
-                onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
-                className="text-[11px] px-2.5 py-1 bg-white border border-slate-200 hover:border-purple-300 hover:text-purple-700 rounded-lg text-slate-600 transition"
-              >
-                วันนี้
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedDate('2026-10-07')}
-                className="text-[11px] px-2.5 py-1 bg-purple-100/70 border border-purple-200 text-purple-800 rounded-lg font-semibold transition hover:bg-purple-200/60"
-              >
-                7 ต.ค. 2026 (เป้าหมาย)
-              </button>
-              <a
-                href="https://calendar.google.com/calendar/u/0/r"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] px-2.5 py-1 bg-white border border-slate-200 hover:border-purple-300 text-purple-600 hover:text-purple-800 rounded-lg transition inline-flex items-center gap-1"
-              >
-                <span>เปิดหน้าหลัก Calendar</span>
-                <ExternalLink className="w-2.5 h-2.5" />
-              </a>
             </div>
           </div>
 
-          {/* Ward Notice / Helper tip */}
-          <div className="p-3 bg-purple-50/60 border border-purple-100 rounded-xl text-xs text-purple-900/90 flex items-start gap-2.5">
+          {/* Helpful Information Notice */}
+          <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl text-xs text-purple-900 flex items-start gap-2.5">
             <Info className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <span className="font-semibold block">คำแนะนำการใช้งาน:</span>
+              <span className="font-semibold block">คำแนะนำ:</span>
               <span className="text-slate-600 leading-relaxed block text-[11px]">
-                เมื่อกดเปิด ระบบจะนำคุณไปยัง Google Calendar ของบัญชีผู้ใช้งานทันที เพื่อให้สามารถตรวจสอบเวลาเข้าตรวจของแพทย์, นัดหมายหัตถการ, หรือนัดตรวจพิเศษของผู้ป่วยในหอผู้สูงอายุได้แบบเรียลไทม์
+                ตารางนัดหมายด้านบนเชื่อมโยงกับ Google Calendar แบบเรียลไทม์ ท่านสามารถกดปุ่มลัด <strong>"เมื่อวาน"</strong>, <strong>"วันนี้"</strong> หรือ <strong>"พรุ่งนี้"</strong> เพื่อสลับดูรายการได้ทันที และสามารถกดปุ่ม <strong>"รีเฟรช"</strong> เพื่อดึงข้อมูลอัปเดตล่าสุดได้ตลอดเวลา
               </span>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-purple-100 bg-slate-50/60 flex items-center justify-between gap-2">
-          <a
-            href={requestedCalendarUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2 flex items-center gap-1"
-          >
-            <span>ลิงก์ตรง 7 ต.ค. 2026</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
+        {/* Modal Footer */}
+        <div className="p-3.5 sm:p-4 border-t border-purple-100 bg-slate-50/70 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Eye className="w-3.5 h-3.5 text-slate-400" />
+            <span>แสดงเฉพาะวัน: <strong>{formatThaiDate(selectedDate)}</strong></span>
+          </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="py-2 px-4 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-white text-xs sm:text-sm transition cursor-pointer"
-          >
-            ปิด
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={dayWebUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-purple-700 hover:text-purple-900 font-bold underline underline-offset-2 flex items-center gap-1"
+            >
+              <span>เปิด Google Calendar</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="py-1.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-white text-xs sm:text-sm transition cursor-pointer"
+            >
+              ปิด
+            </button>
+          </div>
         </div>
       </div>
     </div>
