@@ -37,7 +37,6 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
     return `${year}-${month}-${day}`;
   };
 
-  const yesterdayStr = useMemo(() => getLocalDateString(-1), []);
   const todayStr = useMemo(() => getLocalDateString(0), []);
   const tomorrowStr = useMemo(() => getLocalDateString(1), []);
 
@@ -70,7 +69,6 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isYesterday = selectedDate === yesterdayStr;
   const isToday = selectedDate === todayStr;
   const isTomorrow = selectedDate === tomorrowStr;
 
@@ -233,28 +231,8 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
               <span>ปุ่มลัดเลือกวัน:</span>
             </div>
 
-            {/* Quick Scope Buttons: เมื่อวาน, วันนี้, พรุ่งนี้ */}
+            {/* Quick Scope Buttons: วันนี้, พรุ่งนี้ */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* เมื่อวาน */}
-              <button
-                type="button"
-                id="btn-scope-yesterday"
-                onClick={() => setSelectedDate(yesterdayStr)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                  isYesterday
-                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-300/40 ring-2 ring-purple-400/50'
-                    : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100/70'
-                }`}
-                title={`ดูนัดหมายเมื่อวาน (${formatThaiDate(yesterdayStr)})`}
-              >
-                <span>เมื่อวาน</span>
-                <span className={`text-[10px] font-normal px-1.5 py-0.2 rounded-md ${
-                  isYesterday ? 'bg-purple-700/80 text-white' : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {formatThaiDateShort(yesterdayStr)}
-                </span>
-              </button>
-
               {/* วันนี้ (เรียลไทม์) */}
               <button
                 type="button"
@@ -327,7 +305,7 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
               <div className="text-xs font-bold text-purple-800 bg-white px-3 py-1 rounded-xl border border-purple-200/80 shadow-2xs flex items-center gap-1.5">
                 <CalendarCheck className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                 <span>
-                  {isToday ? 'วันนี้: ' : isYesterday ? 'เมื่อวาน: ' : isTomorrow ? 'พรุ่งนี้: ' : ''}
+                  {isToday ? 'วันนี้: ' : isTomorrow ? 'พรุ่งนี้: ' : ''}
                   {formatThaiDate(selectedDate)}
                 </span>
               </div>
@@ -366,7 +344,7 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
             <div className="space-y-0.5">
               <span className="font-semibold block">คำแนะนำ:</span>
               <span className="text-slate-600 leading-relaxed block text-[11px]">
-                ตารางนัดหมายด้านบนเชื่อมโยงกับ Google Calendar แบบเรียลไทม์ ท่านสามารถกดปุ่มลัด <strong>"เมื่อวาน"</strong>, <strong>"วันนี้"</strong> หรือ <strong>"พรุ่งนี้"</strong> เพื่อสลับดูรายการได้ทันที และสามารถกดปุ่ม <strong>"รีเฟรช"</strong> เพื่อดึงข้อมูลอัปเดตล่าสุดได้ตลอดเวลา
+                ตารางนัดหมายด้านบนเชื่อมโยงกับ Google Calendar แบบเรียลไทม์ ท่านสามารถกดปุ่มลัด <strong>"วันนี้"</strong> หรือ <strong>"พรุ่งนี้"</strong> เพื่อสลับดูรายการได้ทันที และสามารถกดปุ่ม <strong>"รีเฟรช"</strong> เพื่อดึงข้อมูลอัปเดตล่าสุดได้ตลอดเวลา
               </span>
             </div>
           </div>
