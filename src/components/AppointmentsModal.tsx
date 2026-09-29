@@ -6,7 +6,6 @@ import {
   X,
   Clock,
   CalendarCheck,
-  ShieldCheck,
   Lock,
   Eye,
   Info,
@@ -338,52 +337,6 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-3 sm:p-5 space-y-4 overflow-y-auto flex-1">
-          {/* Daily Schedule Card for the selected date */}
-          <div className="bg-gradient-to-br from-purple-50/90 via-indigo-50/40 to-white p-4 rounded-2xl border border-purple-200/90 shadow-xs space-y-3">
-            <div className="flex items-start justify-between gap-2 flex-wrap">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                    isToday
-                      ? 'bg-purple-100 text-purple-800 border-purple-300 flex items-center gap-1'
-                      : isYesterday
-                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                      : isTomorrow
-                      ? 'bg-blue-100 text-blue-900 border-blue-300'
-                      : 'bg-purple-50 text-purple-700 border-purple-200'
-                  }`}>
-                    {isToday && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping mr-0.5" />}
-                    {isToday ? 'นัดหมายวันนี้ (เรียลไทม์)' : isYesterday ? 'นัดหมายเมื่อวาน' : isTomorrow ? 'นัดหมายพรุ่งนี้' : 'นัดหมายวันที่เลือก'}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500">
-                    แสดงเฉพาะรายการนัดหมาย Google Calendar
-                  </span>
-                </div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
-                  ตารางนัดหมาย: {formatThaiDate(selectedDate)}
-                </h3>
-              </div>
-
-              {/* Direct Open Button for Google Calendar Day View */}
-              <a
-                href={dayWebUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-300/30 transition active:scale-95 shrink-0"
-              >
-                <span>เปิดใน Google Calendar</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-
-            <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>
-                เรียกดูได้ทันทีโดยไม่ต้องลงชื่อเข้าใช้ และระบบล็อกเป็นโหมดอ่านอย่างเดียว (ไม่สามารถแก้ไขปฏิทินได้)
-              </span>
-            </div>
-          </div>
-
           {/* Embedded Google Calendar for this specific day */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-slate-600 px-1">
