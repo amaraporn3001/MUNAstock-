@@ -6,7 +6,6 @@ export const DEFAULT_PERSONS: string[] = [];
 export const DEFAULT_ITEMS: ItemDefinition[] = [
   { name: 'แพมเพิส', unit: 'ชิ้น', threshold: 20 },
   { name: 'แผ่นรองซับ', unit: 'แผ่น', threshold: 20 },
-  { name: 'สายดูดเสมหะ', unit: 'เส้น', threshold: 20 },
   { name: 'ทิชชู่เปียก', unit: 'ห่อ', threshold: 2 },
   { name: 'ทิชชู่แห้ง', unit: 'ห่อ/ม้วน', threshold: 2 },
   { name: 'ถุงมือ', unit: 'กล่อง', threshold: 1 },

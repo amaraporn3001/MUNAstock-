@@ -87,7 +87,8 @@ export default function App() {
     return (
       lower === 'blue pad' ||
       lower === 'สเปรย์ดับกลิ่น' ||
-      lower === 'สเปร์ยดับกลิ่น'
+      lower === 'สเปร์ยดับกลิ่น' ||
+      lower === 'สายดูดเสมหะ'
     );
   };
 
@@ -98,17 +99,6 @@ export default function App() {
       try {
         let parsed: ItemDefinition[] = JSON.parse(saved);
         parsed = parsed.filter((i) => !isPermanentlyRemovedItem(i.name));
-        const suctionIdx = parsed.findIndex((i) => i.name === 'สายดูดเสมหะ');
-        if (suctionIdx === -1) {
-          parsed.splice(2, 0, { name: 'สายดูดเสมหะ', unit: 'เส้น', threshold: 20, alert_enabled: true });
-        } else {
-          parsed[suctionIdx] = {
-            ...parsed[suctionIdx],
-            unit: 'เส้น',
-            threshold: 20,
-            alert_enabled: true,
-          };
-        }
         return parsed;
       } catch {
         return DEFAULT_ITEMS;
@@ -249,14 +239,9 @@ export default function App() {
       unsubscribeItems = subscribeToItems(
         (firestoreItems) => {
           if (firestoreItems.length > 0) {
-            let validItems = firestoreItems.filter(
+            const validItems = firestoreItems.filter(
               (i) => !isPermanentlyRemovedItem(i.name)
             );
-            const suctionIdx = validItems.findIndex((i) => i.name === 'สายดูดเสมหะ');
-            if (suctionIdx === -1) {
-              validItems.splice(2, 0, { name: 'สายดูดเสมหะ', unit: 'เส้น', threshold: 20, alert_enabled: true });
-              saveItemsToFirestore(validItems).catch(console.warn);
-            }
             setItems(validItems);
           } else {
             saveItemsToFirestore(DEFAULT_ITEMS).catch(console.warn);
@@ -266,6 +251,9 @@ export default function App() {
           console.warn('Firestore items listener error:', error);
         }
       );
+
+      // Clean up removed items from Firestore
+      deleteItemFromFirestore('สายดูดเสมหะ').catch(console.warn);
 
       unsubscribePersons = subscribeToPersons(
         (firestorePersons) => {
