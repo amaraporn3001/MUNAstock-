@@ -14,6 +14,8 @@ import {
   Stethoscope,
   X,
   Pencil,
+  Table as TableIcon,
+  LayoutGrid,
 } from 'lucide-react';
 import { EditRecordModal } from './EditRecordModal';
 
@@ -40,6 +42,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const [selectedPerson, setSelectedPerson] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingRecord, setEditingRecord] = useState<StockRecord | null>(null);
 
   // Quick date presets
@@ -115,7 +118,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   // Export CSV
   const handleExportCSV = () => {
     if (!filteredRecords.length) return;
-    const headers = ['วันเวลา', 'ชื่อผู้ป่วย', 'ประเภท', 'รายการ', 'จำนวน/ครั้ง', 'หน่วย', 'การกระทำ', 'รายละเอียด/ตำแหน่งแผล', 'อุปกรณ์ที่ใช้', 'ผู้บันทึก'];
+    const headers = [
+      'วันเวลา',
+      'ชื่อผู้ป่วย',
+      'ประเภท',
+      'รายการ',
+      'จำนวน/ครั้ง',
+      'หน่วย',
+      'การกระทำ',
+      'รายละเอียด/ตำแหน่งแผล',
+      'อุปกรณ์ที่ใช้',
+      'ผู้บันทึก',
+    ];
     const rows = filteredRecords.map((r) => {
       const dt = new Date(r.timestamp).toLocaleString('th-TH');
       let suppliesStr = '';
@@ -262,7 +276,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           </div>
         </div>
 
-        {/* Search bar & summary line */}
+        {/* Search bar & summary line with View Mode Toggle */}
         <div className="flex items-center gap-2 pt-0.5 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
@@ -277,20 +291,50 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
+          {/* View mode toggle (Table / Cards) */}
+          <div className="flex items-center bg-purple-50/80 p-0.5 rounded-lg border border-purple-100">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md font-semibold transition cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-purple-600 text-white shadow-2xs'
+                  : 'text-purple-700 hover:bg-purple-100/60'
+              }`}
+              title="แสดงเป็นตาราง (Table View)"
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>ตาราง</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md font-semibold transition cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-purple-600 text-white shadow-2xs'
+                  : 'text-purple-700 hover:bg-purple-100/60'
+              }`}
+              title="แสดงเป็นการ์ด (Card View)"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>การ์ด</span>
+            </button>
+          </div>
+
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>พบ {filteredRecords.length} รายการ</span>
+            <span className="font-medium">พบ {filteredRecords.length} รายการ</span>
             {filteredRecords.length > 0 && (
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-medium border border-purple-100 transition"
+                className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold border border-purple-100 transition cursor-pointer"
                 title="ดาวน์โหลดไฟล์ Excel/CSV สำหรับส่งเวร"
               >
                 <Download className="w-3 h-3" />
@@ -301,18 +345,214 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
       </div>
 
-      {/* History Items List */}
-      <div id="history-list" className="space-y-1.5">
-        {filteredRecords.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-purple-100 space-y-1.5">
-            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-              <FileText className="w-5 h-5" />
-            </div>
-            <p className="text-sm font-semibold text-slate-700">ไม่พบประวัติรายการตามเงื่อนไขที่เลือก</p>
-            <p className="text-xs text-slate-400">ลองเปลี่ยนช่วงวันที่ หรือล้างตัวกรองเพื่อดูรายการทั้งหมด</p>
+      {/* History Items Display */}
+      {filteredRecords.length === 0 ? (
+        <div className="bg-white rounded-2xl p-8 text-center border border-purple-100 space-y-1.5 shadow-xs">
+          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <FileText className="w-5 h-5" />
           </div>
-        ) : (
-          filteredRecords.map((r) => {
+          <p className="text-sm font-semibold text-slate-700">ไม่พบประวัติรายการตามเงื่อนไขที่เลือก</p>
+          <p className="text-xs text-slate-400">ลองเปลี่ยนช่วงวันที่ หรือล้างตัวกรองเพื่อดูรายการทั้งหมด</p>
+        </div>
+      ) : viewMode === 'table' ? (
+        /* TABLE VIEW */
+        <div className="bg-white rounded-2xl shadow-xs border border-purple-100 overflow-hidden">
+          <div className="sm:hidden px-3 py-1.5 bg-purple-50/70 border-b border-purple-100 text-[11px] text-purple-700 font-medium flex items-center justify-between">
+            <span>👉 เลื่อนหน้าจอแนวนอนเพื่อดูตารางแบบเต็ม</span>
+            <span className="font-bold">{filteredRecords.length} แถว</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gradient-to-r from-purple-50/90 via-indigo-50/50 to-purple-50/40 text-slate-700 font-bold border-b border-purple-100">
+                  <th className="py-2.5 px-3 whitespace-nowrap">วัน-เวลา</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">ผู้ป่วย / เตียง</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">ประเภท</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">รายการ</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center">จำนวน</th>
+                  <th className="py-2.5 px-3 min-w-[220px]">รายละเอียด / อุปกรณ์ที่ใช้</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">ผู้บันทึก</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-purple-50 text-slate-700">
+                {filteredRecords.map((r, index) => {
+                  const dt = new Date(r.timestamp);
+                  const dateStr = dt.toLocaleDateString('th-TH', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  });
+                  const timeStr = dt.toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  // Parse supplies if procedure
+                  let suppliesList: string[] = [];
+                  if (r.record_type === 'procedure' && r.supplies_used) {
+                    try {
+                      const supObj = JSON.parse(r.supplies_used);
+                      suppliesList = Object.entries(supObj)
+                        .filter(([_, v]) => Number(v) > 0)
+                        .map(([k, v]) => `${k} x${v}`);
+                    } catch {
+                      suppliesList = [];
+                    }
+                  }
+
+                  const isProcedure = r.record_type === 'procedure';
+                  const isReceive = r.action_type === 'receive';
+
+                  return (
+                    <tr
+                      key={r.id}
+                      className={`hover:bg-purple-50/60 transition-colors ${
+                        index % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
+                      }`}
+                    >
+                      {/* Date & Time */}
+                      <td className="py-2.5 px-3 whitespace-nowrap align-top">
+                        <div className="font-semibold text-slate-800 text-xs">{dateStr}</div>
+                        <div className="text-[11px] text-slate-400 font-mono">{timeStr} น.</div>
+                      </td>
+
+                      {/* Patient Name / Bed */}
+                      <td className="py-2.5 px-3 whitespace-nowrap align-top">
+                        <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                          <span>{r.person_name}</span>
+                        </div>
+                      </td>
+
+                      {/* Record Type Badge */}
+                      <td className="py-2.5 px-3 whitespace-nowrap align-top">
+                        {isProcedure ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-pink-100 text-pink-800 border border-pink-200">
+                            <Stethoscope className="w-3 h-3 text-pink-600" />
+                            <span>หัตถการ</span>
+                          </span>
+                        ) : isReceive ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
+                            <span>รับเข้าสต็อก</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-200">
+                            <ArrowUpRight className="w-3 h-3 text-rose-600" />
+                            <span>เบิกใช้งาน</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Item Name */}
+                      <td className="py-2.5 px-3 whitespace-nowrap align-top">
+                        <span className="font-semibold text-slate-800 text-xs sm:text-sm">
+                          {r.item_name}
+                        </span>
+                      </td>
+
+                      {/* Quantity / Count */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center align-top">
+                        {isProcedure ? (
+                          <span className="inline-block px-2 py-0.5 bg-pink-50 text-pink-700 font-bold rounded-lg text-xs border border-pink-100">
+                            {r.procedure_count || 1} ครั้ง
+                          </span>
+                        ) : isReceive ? (
+                          <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg text-xs border border-emerald-100">
+                            +{r.quantity} {r.item_unit}
+                          </span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 bg-rose-50 text-rose-700 font-bold rounded-lg text-xs border border-rose-100">
+                            -{r.quantity} {r.item_unit}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Details / Supplies */}
+                      <td className="py-2.5 px-3 align-top">
+                        {isProcedure ? (
+                          <div className="space-y-1">
+                            {r.procedure_detail && (
+                              <div className="text-[11px] text-slate-700">
+                                <span className="font-bold text-pink-900">รายละเอียด:</span>{' '}
+                                {r.procedure_detail}
+                              </div>
+                            )}
+                            {r.wound_location && (
+                              <div className="text-[11px] text-slate-700">
+                                <span className="font-bold text-pink-900">ตำแหน่งแผล:</span>{' '}
+                                {r.wound_location}
+                              </div>
+                            )}
+                            {suppliesList.length > 0 && (
+                              <div className="text-[11px] flex flex-wrap gap-1 pt-0.5">
+                                <span className="font-bold text-pink-900 shrink-0">อุปกรณ์:</span>
+                                {suppliesList.map((sup, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="bg-pink-50 text-pink-700 px-1.5 py-0.2 rounded border border-pink-100 text-[10px] font-medium"
+                                  >
+                                    {sup}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {!r.procedure_detail && !r.wound_location && suppliesList.length === 0 && (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
+                      </td>
+
+                      {/* Recorded By */}
+                      <td className="py-2.5 px-3 whitespace-nowrap align-top">
+                        <div className="flex items-center gap-1 font-medium text-slate-600 text-xs">
+                          <User className="w-3 h-3 text-slate-400" />
+                          <span>{r.performed_by || 'ไม่ระบุ'}</span>
+                        </div>
+                      </td>
+
+                      {/* Actions: Edit & Delete */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center align-top">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingRecord(r)}
+                            className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+                            title="แก้ไขการคีย์ข้อมูลรายการนี้"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteRequest(r)}
+                            className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            title="ลบรายการนี้"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-2.5 bg-purple-50/40 border-t border-purple-100 flex items-center justify-between text-xs text-slate-500">
+            <span>แสดงรายการทั้งหมด {filteredRecords.length} รายการ</span>
+            <span className="text-[11px] text-purple-700 font-medium">ตารางประวัติเรียลไทม์</span>
+          </div>
+        </div>
+      ) : (
+        /* CARD VIEW (Alternative) */
+        <div id="history-list" className="space-y-1.5">
+          {filteredRecords.map((r) => {
             const dt = new Date(r.timestamp);
             const dateStr = dt.toLocaleDateString('th-TH', {
               day: '2-digit',
@@ -409,7 +649,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      <span>{dateStr} เวลา {timeStr} น.</span>
+                      <span>
+                        {dateStr} เวลา {timeStr} น.
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -436,9 +678,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Edit Record Modal */}
       <EditRecordModal

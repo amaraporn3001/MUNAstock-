@@ -351,6 +351,34 @@ export default function App() {
     });
   };
 
+  // Batch deletion of procedure records for a specific patient and date
+  const handleBatchDeleteProcedures = (personName: string, dateStr: string, targetIds: string[]) => {
+    if (!requireOnline('ลบข้อมูลหัตถการ')) return;
+    if (!targetIds.length) return;
+
+    // Track confirmed deleted record IDs in state & localStorage so they never re-appear
+    setDeletedRecordIds((prev) => {
+      const updated = new Set(prev);
+      targetIds.forEach((id) => updated.add(id));
+      try {
+        localStorage.setItem('aging_ward_deleted_record_ids', JSON.stringify(Array.from(updated)));
+      } catch (err) {
+        console.warn('Failed saving deleted_record_ids:', err);
+      }
+      return updated;
+    });
+
+    const targetIdSet = new Set(targetIds);
+    setRecords((prev) => prev.filter((r) => !targetIdSet.has(r.id)));
+
+    // Delete each record from Firestore
+    targetIds.forEach((id) => {
+      deleteRecordFromFirestore(id).catch((err) => {
+        console.warn(`Firestore batch delete failed for id ${id}:`, err);
+      });
+    });
+  };
+
   // Record update (edit record and persist changes to state and Firestore)
   const handleUpdateRecord = (updatedRecord: StockRecord) => {
     if (!requireOnline('แก้ไขข้อมูลประวัติ')) return;
@@ -645,6 +673,7 @@ export default function App() {
                   setIsDeleteModalOpen(true);
                 }}
                 onUpdateRecord={handleUpdateRecord}
+                onBatchDeleteProcedures={handleBatchDeleteProcedures}
               />
             </section>
           </div>

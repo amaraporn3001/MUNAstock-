@@ -127,6 +127,29 @@ export async function deleteRecordFromFirestore(recordId: string): Promise<void>
 }
 
 /**
+ * Delete multiple records in batch from Firestore
+ */
+export async function deleteMultipleRecordsFromFirestore(recordIds: string[]): Promise<void> {
+  assertOnline();
+  if (!recordIds || recordIds.length === 0) return;
+  try {
+    // Process in batches of 400 (Firestore batch limit is 500)
+    for (let i = 0; i < recordIds.length; i += 400) {
+      const chunk = recordIds.slice(i, i + 400);
+      const batch = writeBatch(db);
+      chunk.forEach((id) => {
+        const recordRef = doc(db, COLLECTIONS.RECORDS, id);
+        batch.delete(recordRef);
+      });
+      await batch.commit();
+    }
+  } catch (err) {
+    console.error('Failed to batch delete records from Firestore:', err);
+    throw err;
+  }
+}
+
+/**
  * Initial bulk seed to Firestore if collection is empty
  */
 export async function seedInitialRecordsIfEmpty(initialRecords: StockRecord[]): Promise<boolean> {
