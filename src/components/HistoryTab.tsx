@@ -18,6 +18,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { EditRecordModal } from './EditRecordModal';
+import { generateHistoryCSV } from '../utils/csvExportHelper';
 
 interface HistoryTabProps {
   records: StockRecord[];
@@ -115,55 +116,15 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
   }, [records, selectedPerson, selectedType, fromDate, toDate, searchQuery, deletedRecordIds]);
 
-  // Export CSV
+  // Export CSV with itemized supplies for accurate SUM
   const handleExportCSV = () => {
     if (!filteredRecords.length) return;
-    const headers = [
-      'วันเวลา',
-      'ชื่อผู้ป่วย',
-      'ประเภท',
-      'รายการ',
-      'จำนวน/ครั้ง',
-      'หน่วย',
-      'การกระทำ',
-      'รายละเอียด/ตำแหน่งแผล',
-      'อุปกรณ์ที่ใช้',
-      'ผู้บันทึก',
-    ];
-    const rows = filteredRecords.map((r) => {
-      const dt = new Date(r.timestamp).toLocaleString('th-TH');
-      let suppliesStr = '';
-      if (r.supplies_used) {
-        try {
-          const sup = JSON.parse(r.supplies_used);
-          suppliesStr = Object.entries(sup)
-            .filter(([_, v]) => Number(v) > 0)
-            .map(([k, v]) => `${k}:${v}`)
-            .join('; ');
-        } catch {
-          suppliesStr = r.supplies_used;
-        }
-      }
-      return [
-        `"${dt}"`,
-        `"${r.person_name}"`,
-        `"${r.record_type === 'procedure' ? 'หัตถการ' : 'ของใช้'}"`,
-        `"${r.item_name}"`,
-        `"${r.record_type === 'procedure' ? r.procedure_count || 1 : r.quantity}"`,
-        `"${r.item_unit || ''}"`,
-        `"${r.action_type === 'receive' ? 'รับเข้า' : r.action_type === 'withdraw' ? 'เบิกออก' : 'หัตถการ'}"`,
-        `"${(r.procedure_detail || '') + (r.wound_location ? ' ' + r.wound_location : '')}"`,
-        `"${suppliesStr}"`,
-        `"${r.performed_by}"`,
-      ].join(',');
-    });
-
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const csvContent = generateHistoryCSV(filteredRecords, { itemizeSupplies: true });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `aging-ward-history-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `aging-ward-history-itemized-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
-import { Download, FileSpreadsheet, X, Calendar, User, CheckCircle2, Layers, FileText } from 'lucide-react';
+import {
+  Download,
+  FileSpreadsheet,
+  X,
+  Calendar,
+  User,
+  CheckCircle2,
+  Layers,
+  FileText,
+  Stethoscope,
+  Calculator,
+} from 'lucide-react';
 import { ItemDefinition, StockRecord } from '../types';
+import {
+  generateHistoryCSV,
+  generateEquipmentSummaryCSV,
+} from '../utils/csvExportHelper';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -21,11 +36,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   selectedPerson,
   deletedRecordIds = [],
 }) => {
-  const [exportType, setExportType] = useState<'history' | 'all_patients_stock' | 'patient_stock'>('history');
+  const [exportType, setExportType] = useState<
+    'history' | 'equipment_summary' | 'all_patients_stock' | 'patient_stock'
+  >('history');
   const [dateFilter, setDateFilter] = useState<'today' | '7days' | 'month' | 'all'>('today');
   const [targetPerson, setTargetPerson] = useState<string>(selectedPerson || '');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
+  const [itemizeSupplies, setItemizeSupplies] = useState<boolean>(true);
   const [isExportSuccess, setIsExportSuccess] = useState<boolean>(false);
 
   if (!isOpen) return null;
@@ -118,59 +136,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
     if (exportType === 'history') {
       const data = getFilteredRecords();
-      const headers = [
-        'วันที่',
-        'เวลา',
-        'ชื่อผู้ป่วย',
-        'ประเภทรายการ',
-        'รายการของใช้/หัตถการ',
-        'จำนวน',
-        'หน่วย',
-        'การกระทำ',
-        'อุปกรณ์ที่ใช้ประกอบ',
-        'ผู้บันทึก',
-      ];
-
-      const rows = data.map((r) => {
-        const dt = new Date(r.timestamp);
-        const dateStr = dt.toLocaleDateString('th-TH');
-        const timeStr = dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-        const typeLabel = r.record_type === 'procedure' ? 'หัตถการ' : 'ของใช้';
-        const actionLabel =
-          r.action_type === 'receive'
-            ? 'รับเข้าสต็อก'
-            : r.action_type === 'withdraw'
-            ? 'เบิกใช้'
-            : 'ทำหัตถการ';
-
-        let suppliesStr = '';
-        if (r.supplies_used) {
-          try {
-            const parsed = JSON.parse(r.supplies_used);
-            suppliesStr = Object.entries(parsed)
-              .map(([k, v]) => `${k} (${v})`)
-              .join('; ');
-          } catch {
-            suppliesStr = r.supplies_used;
-          }
-        }
-
-        return [
-          `"${dateStr}"`,
-          `"${timeStr}"`,
-          `"${r.person_name}"`,
-          `"${typeLabel}"`,
-          `"${r.item_name}"`,
-          r.quantity,
-          `"${r.item_unit || 'ชิ้น'}"`,
-          `"${actionLabel}"`,
-          `"${suppliesStr.replace(/"/g, '""')}"`,
-          `"${r.performed_by}"`,
-        ].join(',');
-      });
-
-      csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+      csvContent = generateHistoryCSV(data, { itemizeSupplies });
       fileName = `aging-ward-history-${targetPerson ? targetPerson + '-' : ''}${dateStamp}.csv`;
+    } else if (exportType === 'equipment_summary') {
+      const data = getFilteredRecords();
+      csvContent = generateEquipmentSummaryCSV(data);
+      fileName = `aging-ward-equipment-summary-${targetPerson ? targetPerson + '-' : ''}${dateStamp}.csv`;
     } else if (exportType === 'all_patients_stock') {
       // Matrix: Patients x Items (computed from active records only)
       const itemNames = items.map((i) => i.name);
@@ -236,7 +207,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-purple-100 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-purple-100 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-purple-700 via-purple-800 to-indigo-800 p-5 sm:p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -245,33 +216,35 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold">ส่งออกข้อมูลเป็น CSV (Excel)</h2>
-              <p className="text-xs text-purple-200">ดาวน์โหลดรายงานข้อมูลสต็อกและประวัติการเบิก</p>
+              <p className="text-xs text-purple-200">
+                แยกจำนวนอุปกรณ์เป็นตัวเลขเพื่อใช้สูตร =SUM() ได้อย่างถูกต้องแม่นยำ
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition"
+            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
           {/* Format selection */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
               เลือกรูปแบบรายงานที่ต้องการส่งออก
             </label>
             <div className="grid grid-cols-1 gap-2.5">
-              {/* Option 1 */}
+              {/* Option 1: History Log with Itemized Supplies */}
               <button
                 type="button"
                 onClick={() => setExportType('history')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 ${
+                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 cursor-pointer ${
                   exportType === 'history'
-                    ? 'border-purple-600 bg-purple-50/80 shadow-xs'
+                    ? 'border-purple-600 bg-purple-50/90 shadow-xs'
                     : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
                 }`}
               >
@@ -285,22 +258,61 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold text-slate-900 block">
-                    ประวัติการเบิกของใช้ &amp; หัตถการ (Log รายการ)
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-bold text-slate-900">
+                      ประวัติการเบิกของใช้ &amp; หัตถการ (Log รายการ)
+                    </span>
+                    <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2 py-0.2 rounded-full">
+                      แยกจำนวนอุปกรณ์สำหรับ SUM
+                    </span>
+                  </div>
                   <span className="text-xs text-slate-500 block mt-0.5">
-                    รายละเอียดบันทึกทุกรายการ พร้อมวันเวลา, ผู้ป่วย, จำนวน และชื่อผู้ปฏิบัติงาน
+                    บันทึกทุกรายการ พร้อมแยกจำนวนอุปกรณ์เวชภัณฑ์เป็นตัวเลขล้วน สามารถนำไป SUM หรือทำ Pivot Table ได้ทันที
                   </span>
                 </div>
               </button>
 
-              {/* Option 2 */}
+              {/* Option 2: Equipment Usage Summary Report */}
+              <button
+                type="button"
+                onClick={() => setExportType('equipment_summary')}
+                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 cursor-pointer ${
+                  exportType === 'equipment_summary'
+                    ? 'border-purple-600 bg-purple-50/90 shadow-xs'
+                    : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                    exportType === 'equipment_summary'
+                      ? 'bg-purple-700 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <Calculator className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-bold text-slate-900">
+                      สรุปยอดรวมอุปกรณ์และเวชภัณฑ์ทั้งหมด (Equipment SUM Summary)
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.2 rounded-full">
+                      รวมผล SUM อัตโนมัติ
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500 block mt-0.5">
+                    ตารางสรุปอุปกรณ์เวชภัณฑ์ทุกชิ้นที่ใช้ไป (เช่น NSS, Gauze, ถุงมือ, เข็ม) พร้อมยอดรวม SUM ทั้งหมด
+                  </span>
+                </div>
+              </button>
+
+              {/* Option 3: All Patients Matrix */}
               <button
                 type="button"
                 onClick={() => setExportType('all_patients_stock')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 ${
+                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 cursor-pointer ${
                   exportType === 'all_patients_stock'
-                    ? 'border-purple-600 bg-purple-50/80 shadow-xs'
+                    ? 'border-purple-600 bg-purple-50/90 shadow-xs'
                     : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
                 }`}
               >
@@ -323,13 +335,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </div>
               </button>
 
-              {/* Option 3 */}
+              {/* Option 4: Patient Stock Balance */}
               <button
                 type="button"
                 onClick={() => setExportType('patient_stock')}
-                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 ${
+                className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3 cursor-pointer ${
                   exportType === 'patient_stock'
-                    ? 'border-purple-600 bg-purple-50/80 shadow-xs'
+                    ? 'border-purple-600 bg-purple-50/90 shadow-xs'
                     : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
                 }`}
               >
@@ -355,10 +367,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           {/* Filtering controls when applicable */}
-          {exportType === 'history' && (
+          {(exportType === 'history' || exportType === 'equipment_summary') && (
             <div className="p-4 bg-slate-50 rounded-2xl border border-purple-100/80 space-y-3">
               <label className="block text-xs font-bold text-slate-700">
-                ตัวกรองช่วงเวลา (ประวัติ)
+                ตัวกรองช่วงเวลา {exportType === 'equipment_summary' ? '(สรุปอุปกรณ์)' : '(ประวัติ)'}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {[
@@ -371,9 +383,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     key={d.id}
                     type="button"
                     onClick={() => setDateFilter(d.id as any)}
-                    className={`py-2 px-2 rounded-xl text-xs font-semibold border transition ${
+                    className={`py-2 px-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                       dateFilter === d.id
-                        ? 'bg-purple-700 text-white border-purple-700'
+                        ? 'bg-purple-700 text-white border-purple-700 shadow-2xs'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
                     }`}
                   >
@@ -400,8 +412,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </select>
               </div>
 
-              <div className="text-xs text-purple-800 font-medium pt-1">
-                📊 พบข้อมูลประวัติที่จะส่งออก: <strong>{previewCount} รายการ</strong>
+              {exportType === 'history' && (
+                <label className="flex items-center gap-2 text-xs font-semibold text-purple-900 bg-purple-50 p-2.5 rounded-xl border border-purple-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={itemizeSupplies}
+                    onChange={(e) => setItemizeSupplies(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 rounded focus:ring-purple-400"
+                  />
+                  <span>แยกแถวอุปกรณ์เวชภัณฑ์เป็นรายชิ้น (พร้อมคอลัมน์จำนวนตัวเลขสำหรับใช้สูตร =SUM() ใน Excel)</span>
+                </label>
+              )}
+
+              <div className="text-xs text-purple-800 font-medium pt-1 flex items-center justify-between">
+                <span>📊 พบข้อมูลที่จะนำมาประมวลผล:</span>
+                <strong>{previewCount} รายการ</strong>
               </div>
             </div>
           )}
@@ -423,9 +448,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
           )}
 
-          <div className="p-3 bg-emerald-50/70 border border-emerald-200/70 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>ไฟล์ CSV รองรับภาษาไทยสมบูรณ์ (UTF-8 with BOM) เปิดใน Microsoft Excel ได้ทันที</span>
+          <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <span>
+              ไฟล์ CSV รองรับภาษาไทยสมบูรณ์ (UTF-8 with BOM) คอลัมน์จำนวนเป็นตัวเลขล้วน สามารถคลิกและใช้สูตร <strong>=SUM()</strong> หรือสร้าง <strong>Pivot Table</strong> ใน Excel รวมยอดได้ทันที
+            </span>
           </div>
         </div>
 
@@ -434,7 +461,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-white text-sm transition min-h-[44px]"
+            className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-white text-sm transition min-h-[44px] cursor-pointer"
           >
             ยกเลิก
           </button>
@@ -442,7 +469,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             type="button"
             id="btn-confirm-export-csv"
             onClick={handleExport}
-            className="py-2.5 px-5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md shadow-purple-700/20 transition flex items-center gap-2 min-h-[44px] active:scale-98"
+            className="py-2.5 px-5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md shadow-purple-700/20 transition flex items-center gap-2 min-h-[44px] active:scale-98 cursor-pointer"
           >
             {isExportSuccess ? (
               <>

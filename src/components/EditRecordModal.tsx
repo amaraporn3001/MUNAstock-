@@ -361,9 +361,19 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
 
               {/* Procedure Count */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  จำนวนครั้ง <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    {itemName.includes('แผล')
+                      ? 'จำนวนตำแหน่ง / จำนวนครั้ง (คือจำนวนเดียวกัน)'
+                      : 'จำนวนครั้ง'}{' '}
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  {itemName.includes('แผล') && (
+                    <span className="text-[11px] text-pink-700 font-semibold bg-pink-100 px-2 py-0.2 rounded-md">
+                      1 ตำแหน่ง = 1 ครั้ง
+                    </span>
+                  )}
+                </div>
                 <input
                   type="number"
                   min="1"

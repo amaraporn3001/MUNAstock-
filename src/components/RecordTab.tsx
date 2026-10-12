@@ -253,13 +253,13 @@ export const RecordTab: React.FC<RecordTabProps> = ({
       let totalNss1000 = 0;
 
       if (dryWoundChecked) {
-        detailParts.push(`แผลแห้ง/เล็ก (${dryWoundCount} ตำแหน่ง)`);
+        detailParts.push(`แผลแห้ง/เล็ก (${dryWoundCount} ตำแหน่ง / ${dryWoundCount} ครั้ง)`);
         if (dryWoundLoc) woundLoc += `แผลแห้ง: ${dryWoundLoc} `;
         if (nss5Checked && nss5Qty > 0) totalNss5 += nss5Qty;
         if (nss100Checked && nss100Qty > 0) totalNss100 += nss100Qty;
       }
       if (infectWoundChecked) {
-        detailParts.push(`แผลติดเชื้อ/เปิด (${infectWoundCount} ตำแหน่ง)`);
+        detailParts.push(`แผลติดเชื้อ/เปิด (${infectWoundCount} ตำแหน่ง / ${infectWoundCount} ครั้ง)`);
         if (infectWoundLoc) woundLoc += `แผลเปิด: ${infectWoundLoc} `;
         if (infectNss5Checked && infectNss5Qty > 0) totalNss5 += infectNss5Qty;
         if (infectNss100Checked && infectNss100Qty > 0) totalNss100 += infectNss100Qty;
@@ -291,6 +291,14 @@ export const RecordTab: React.FC<RecordTabProps> = ({
       if (procExtraDetail) detailParts.push(procExtraDetail);
     }
 
+    // สำหรับการทำแผล จำนวนตำแหน่ง และจำนวนครั้ง คือจำนวนเดียวกัน (1 ตำแหน่ง = 1 ครั้ง)
+    let finalProcCount = procCount;
+    if (procCategory === 'wound') {
+      const totalWoundLocations =
+        (dryWoundChecked ? dryWoundCount : 0) + (infectWoundChecked ? infectWoundCount : 0);
+      finalProcCount = totalWoundLocations > 0 ? totalWoundLocations : 1;
+    }
+
     onAddRecord({
       person_name: selectedPerson,
       item_name: catNameMap[procCategory] || procCategory,
@@ -302,7 +310,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
       record_type: 'procedure',
       procedure_category: procCategory,
       procedure_detail: detailParts.join(' | '),
-      procedure_count: procCount,
+      procedure_count: finalProcCount,
       supplies_used: JSON.stringify(supplies),
       wound_location: woundLoc.trim(),
     });
@@ -898,8 +906,13 @@ export const RecordTab: React.FC<RecordTabProps> = ({
 
                   {/* 4. Wound */}
                   {procCategory === 'wound' && (
-                    <div className="space-y-4">
-                      <span className="font-bold text-pink-950 block">ทำแผล (Wound Dressing)</span>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="font-bold text-pink-950 block">ทำแผล (Wound Dressing)</span>
+                        <span className="text-[11px] bg-pink-100 text-pink-800 font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                          จำนวนตำแหน่ง = จำนวนครั้งในการทำแผล (1 ตำแหน่ง = 1 ครั้ง)
+                        </span>
+                      </div>
 
                       {/* Wound Type 1: Dry wound */}
                       <div className="bg-white p-3 rounded-xl border border-pink-100 space-y-2">
@@ -915,8 +928,8 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                         {dryWoundChecked && (
                           <div className="ml-6 space-y-2 pt-1 text-xs">
                             <div className="flex gap-2 items-center flex-wrap">
-                              <label className="flex items-center gap-1 text-slate-700">
-                                <span>จำนวนตำแหน่ง:</span>
+                              <label className="flex items-center gap-1.5 text-slate-700 font-medium">
+                                <span>จำนวนตำแหน่ง (ครั้ง):</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -924,6 +937,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                                   onChange={(e) => setDryWoundCount(Math.max(1, parseInt(e.target.value) || 1))}
                                   className="w-16 bg-slate-50 border border-slate-200 rounded px-2 py-1 text-center font-bold text-slate-800 focus:ring-pink-400"
                                 />
+                                <span className="text-[11px] text-pink-600 font-semibold">= {dryWoundCount} ครั้ง</span>
                               </label>
                               <input
                                 type="text"
@@ -990,8 +1004,8 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                         {infectWoundChecked && (
                           <div className="ml-6 space-y-2 pt-1 text-xs">
                             <div className="flex gap-2 items-center flex-wrap">
-                              <label className="flex items-center gap-1 text-slate-700">
-                                <span>จำนวนตำแหน่ง:</span>
+                              <label className="flex items-center gap-1.5 text-slate-700 font-medium">
+                                <span>จำนวนตำแหน่ง (ครั้ง):</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -999,6 +1013,7 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                                   onChange={(e) => setInfectWoundCount(Math.max(1, parseInt(e.target.value) || 1))}
                                   className="w-16 bg-slate-50 border border-slate-200 rounded px-2 py-1 text-center font-bold text-slate-800 focus:ring-pink-400"
                                 />
+                                <span className="text-[11px] text-pink-600 font-semibold">= {infectWoundCount} ครั้ง</span>
                               </label>
                               <input
                                 type="text"
@@ -1069,6 +1084,19 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                           </div>
                         )}
                       </div>
+
+                      {/* Total wound summary indicator */}
+                      {(dryWoundChecked || infectWoundChecked) && (
+                        <div className="p-3 bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 rounded-xl border border-pink-200 text-xs flex items-center justify-between shadow-2xs">
+                          <span className="text-pink-900 font-semibold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
+                            <span>สรุปรวมการทำแผล (1 ตำแหน่ง = 1 ครั้ง):</span>
+                          </span>
+                          <span className="font-bold text-xs bg-white px-3 py-1 rounded-lg border border-pink-200 text-pink-700 shadow-2xs">
+                            {(dryWoundChecked ? dryWoundCount : 0) + (infectWoundChecked ? infectWoundCount : 0)} ตำแหน่ง = ทำแผล {(dryWoundChecked ? dryWoundCount : 0) + (infectWoundChecked ? infectWoundCount : 0)} ครั้ง
+                          </span>
+                        </div>
+                      )}
 
                       {/* Wound dressing supplies */}
                       <div className="space-y-2 pt-1">
