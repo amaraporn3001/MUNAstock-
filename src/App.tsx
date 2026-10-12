@@ -16,6 +16,7 @@ import { DeleteModal } from './components/DeleteModal';
 import { ManageModal } from './components/ManageModal';
 import { ExportModal } from './components/ExportModal';
 import { AppointmentsModal } from './components/AppointmentsModal';
+import { ClearHistoryModal } from './components/ClearHistoryModal';
 import { OfflineBlocker } from './components/OfflineBlocker';
 import { Clock } from 'lucide-react';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
@@ -179,6 +180,28 @@ export default function App() {
 
   // Appointments (Google Calendar) modal state
   const [isAppointmentsModalOpen, setIsAppointmentsModalOpen] = useState<boolean>(false);
+
+  // Clear History & Opening Balances modal state
+  const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState<boolean>(false);
+
+  // Handle successful history cleanup and opening balance insertion
+  const handleClearHistorySuccess = (deletedIds: string[], addedRecords: StockRecord[]) => {
+    // 1. Update deletedRecordIds set
+    setDeletedRecordIds((prev) => {
+      const next = new Set(prev);
+      deletedIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+    // 2. Update local records state: filter out deleted, prepend new opening balances
+    setRecords((prev) => {
+      const deletedSet = new Set(deletedIds);
+      const filtered = prev.filter((r) => !deletedSet.has(r.id));
+      const updated = [...addedRecords, ...filtered];
+      localStorage.setItem('aging_ward_records', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -348,34 +371,6 @@ export default function App() {
     setDeleteTarget(null);
     deleteRecordFromFirestore(targetId).catch((err) => {
       console.warn('Firestore delete failed:', err);
-    });
-  };
-
-  // Batch deletion of procedure records for a specific patient and date
-  const handleBatchDeleteProcedures = (personName: string, dateStr: string, targetIds: string[]) => {
-    if (!requireOnline('ลบข้อมูลหัตถการ')) return;
-    if (!targetIds.length) return;
-
-    // Track confirmed deleted record IDs in state & localStorage so they never re-appear
-    setDeletedRecordIds((prev) => {
-      const updated = new Set(prev);
-      targetIds.forEach((id) => updated.add(id));
-      try {
-        localStorage.setItem('aging_ward_deleted_record_ids', JSON.stringify(Array.from(updated)));
-      } catch (err) {
-        console.warn('Failed saving deleted_record_ids:', err);
-      }
-      return updated;
-    });
-
-    const targetIdSet = new Set(targetIds);
-    setRecords((prev) => prev.filter((r) => !targetIdSet.has(r.id)));
-
-    // Delete each record from Firestore
-    targetIds.forEach((id) => {
-      deleteRecordFromFirestore(id).catch((err) => {
-        console.warn(`Firestore batch delete failed for id ${id}:`, err);
-      });
     });
   };
 
@@ -673,7 +668,7 @@ export default function App() {
                   setIsDeleteModalOpen(true);
                 }}
                 onUpdateRecord={handleUpdateRecord}
-                onBatchDeleteProcedures={handleBatchDeleteProcedures}
+                onOpenClearHistory={() => setIsClearHistoryModalOpen(true)}
               />
             </section>
           </div>
@@ -746,6 +741,18 @@ export default function App() {
         deletedRecordIds={Array.from(deletedRecordIds)}
       />
 
+      {/* Clear History & Opening Balances Modal */}
+      <ClearHistoryModal
+        isOpen={isClearHistoryModalOpen}
+        onClose={() => setIsClearHistoryModalOpen(false)}
+        records={records}
+        persons={persons}
+        items={items}
+        currentUser={currentUser}
+        deletedRecordIds={Array.from(deletedRecordIds)}
+        onClearSuccess={handleClearHistorySuccess}
+      />
+
       {/* Staff Login / Switch Modal */}
       <LoginModal
         isOpen={isLoginModalOpen}
@@ -783,6 +790,7 @@ export default function App() {
         onDeletePerson={handleDeletePerson}
         onEditPerson={handleEditPerson}
         onResetData={handleResetData}
+        onOpenClearHistory={() => setIsClearHistoryModalOpen(true)}
       />
     </div>
   );

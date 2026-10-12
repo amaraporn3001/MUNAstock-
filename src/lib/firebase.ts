@@ -127,24 +127,40 @@ export async function deleteRecordFromFirestore(recordId: string): Promise<void>
 }
 
 /**
- * Delete multiple records in batch from Firestore
+ * Bulk clear history records and optionally save opening balance records in Firestore
  */
-export async function deleteMultipleRecordsFromFirestore(recordIds: string[]): Promise<void> {
+export async function bulkClearHistoryInFirestore(
+  recordIdsToDelete: string[],
+  newOpeningBalances: StockRecord[] = []
+): Promise<void> {
   assertOnline();
-  if (!recordIds || recordIds.length === 0) return;
   try {
-    // Process in batches of 400 (Firestore batch limit is 500)
-    for (let i = 0; i < recordIds.length; i += 400) {
-      const chunk = recordIds.slice(i, i + 400);
+    const BATCH_SIZE = 400;
+
+    // 1. Delete old records in batches
+    for (let i = 0; i < recordIdsToDelete.length; i += BATCH_SIZE) {
+      const chunk = recordIdsToDelete.slice(i, i + BATCH_SIZE);
       const batch = writeBatch(db);
       chunk.forEach((id) => {
-        const recordRef = doc(db, COLLECTIONS.RECORDS, id);
-        batch.delete(recordRef);
+        const docRef = doc(db, COLLECTIONS.RECORDS, id);
+        batch.delete(docRef);
+      });
+      await batch.commit();
+    }
+
+    // 2. Insert new opening balance baseline records in batches
+    for (let i = 0; i < newOpeningBalances.length; i += BATCH_SIZE) {
+      const chunk = newOpeningBalances.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach((rec) => {
+        const docRef = doc(db, COLLECTIONS.RECORDS, rec.id);
+        const cleaned = JSON.parse(JSON.stringify(rec));
+        batch.set(docRef, cleaned);
       });
       await batch.commit();
     }
   } catch (err) {
-    console.error('Failed to batch delete records from Firestore:', err);
+    console.error('Failed to bulk clear history in Firestore:', err);
     throw err;
   }
 }

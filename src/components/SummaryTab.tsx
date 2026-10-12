@@ -17,6 +17,8 @@ import {
   Info,
   Download,
   Calendar,
+  LayoutGrid,
+  Table as TableIcon,
 } from 'lucide-react';
 
 interface SummaryTabProps {
@@ -41,6 +43,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
   onOpenAppointments,
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'low' | 'borrowed'>('all');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   // Helper to get active deleted record IDs
   const getDeletedRecordIdsSet = (): Set<string> => {
@@ -252,7 +255,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               id="sum-person"
               value={selectedPerson}
               onChange={(e) => onSelectPerson(e.target.value)}
-              className="w-full border border-purple-200/80 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium"
+              className="w-full border border-purple-200/80 rounded-xl px-3 py-1.5 text-sm sm:text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium cursor-pointer"
             >
               <option value="">-- เลือกชื่อผู้ป่วย --</option>
               {persons.map((p) => (
@@ -287,7 +290,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('all')}
-                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
+                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer ${
                   filterMode === 'all'
                     ? 'bg-gradient-to-r from-purple-500 to-indigo-400 text-white shadow-2xs font-semibold'
                     : 'bg-purple-50/60 text-slate-600 hover:bg-purple-100/70 hover:text-purple-800'
@@ -298,7 +301,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('low')}
-                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
+                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer ${
                   filterMode === 'low'
                     ? 'bg-amber-500 text-white shadow-2xs font-semibold'
                     : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
@@ -309,7 +312,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterMode('borrowed')}
-                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition ${
+                className={`text-xs px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer ${
                   filterMode === 'borrowed'
                     ? 'bg-rose-600 text-white shadow-2xs font-semibold'
                     : 'bg-rose-50 text-rose-800 hover:bg-rose-100'
@@ -320,15 +323,42 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-400 hidden sm:inline mr-1">
-                ผู้ป่วย: <strong className="text-purple-600 font-semibold">{selectedPerson}</strong>
-              </span>
+              {/* View Mode Toggle: Card View first, then Table View */}
+              <div className="flex items-center bg-purple-50/80 p-0.5 rounded-lg border border-purple-100">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-md font-semibold transition cursor-pointer ${
+                    viewMode === 'cards'
+                      ? 'bg-purple-600 text-white shadow-2xs'
+                      : 'text-purple-700 hover:bg-purple-100/60'
+                  }`}
+                  title="แสดงเป็นการ์ด (Card View)"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>การ์ด</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-md font-semibold transition cursor-pointer ${
+                    viewMode === 'table'
+                      ? 'bg-purple-600 text-white shadow-2xs'
+                      : 'text-purple-700 hover:bg-purple-100/60'
+                  }`}
+                  title="แสดงเป็นตาราง (Table View)"
+                >
+                  <TableIcon className="w-3.5 h-3.5" />
+                  <span>ตาราง</span>
+                </button>
+              </div>
+
               {onOpenAppointments && (
                 <button
                   type="button"
                   id="btn-summary-appointments"
                   onClick={onOpenAppointments}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold border border-purple-200/80 transition shadow-2xs"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-semibold border border-purple-200/80 transition shadow-2xs cursor-pointer"
                   title="ดูนัดหมาย Google Calendar"
                 >
                   <Calendar className="w-3.5 h-3.5 text-purple-600" />
@@ -340,7 +370,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                   type="button"
                   id="btn-summary-export-csv"
                   onClick={onOpenExport}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50/80 text-purple-700 hover:bg-purple-100/80 rounded-lg text-xs font-semibold border border-purple-200/60 transition"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-purple-50/80 text-purple-700 hover:bg-purple-100/80 rounded-lg text-xs font-semibold border border-purple-200/60 transition cursor-pointer"
                   title="ส่งออกรายงานข้อมูลสต็อกเป็นไฟล์ CSV"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -352,27 +382,28 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
         )}
       </div>
 
-      {/* Stock Items List for Selected Patient */}
-      <div id="summary-list" className="space-y-1.5">
-        {!selectedPerson ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-purple-100 space-y-1.5">
-            <User className="w-8 h-8 text-purple-400 mx-auto" />
-            <p className="text-sm font-semibold text-slate-700">
-              กรุณาเลือกผู้ป่วยด้านบนเพื่อดูยอดคงเหลือของใช้
-            </p>
-            <p className="text-xs text-slate-400">
-              ระบบจะคำนวณยอดรับเข้า-เบิกออก และแสดงสถานะเปิดใช้งานข้างเตียง/ยืมแผนกโดยอัตโนมัติ
-            </p>
-          </div>
-        ) : displayedItems.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center border border-purple-100">
-            <p className="text-sm text-slate-500 font-medium">ยังไม่มีข้อมูลของใช้สำหรับผู้ป่วยรายนี้</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              ไปที่แท็บ "คีย์ข้อมูล" เพื่อบันทึกรับเข้าของใช้สำหรับผู้ป่วยรายนี้ได้ทันที
-            </p>
-          </div>
-        ) : (
-          displayedItems.map((item) => (
+      {/* Stock Items Display for Selected Patient */}
+      {!selectedPerson ? (
+        <div className="bg-white rounded-2xl p-8 text-center border border-purple-100 space-y-1.5 shadow-xs">
+          <User className="w-8 h-8 text-purple-400 mx-auto" />
+          <p className="text-sm font-semibold text-slate-700">
+            กรุณาเลือกผู้ป่วยด้านบนเพื่อดูสรุปยอดคงเหลือของใช้
+          </p>
+          <p className="text-xs text-slate-400">
+            ระบบจะคำนวณยอดรับเข้า-เบิกออก และแสดงสถานะเปิดใช้งานข้างเตียง/ยืมแผนกโดยอัตโนมัติ
+          </p>
+        </div>
+      ) : displayedItems.length === 0 ? (
+        <div className="bg-white rounded-2xl p-6 text-center border border-purple-100 shadow-xs">
+          <p className="text-sm text-slate-500 font-medium">ยังไม่มีข้อมูลของใช้สำหรับผู้ป่วยรายนี้</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            ไปที่แท็บ "คีย์ข้อมูล" เพื่อบันทึกรับเข้าของใช้สำหรับผู้ป่วยรายนี้ได้ทันที
+          </p>
+        </div>
+      ) : viewMode === 'cards' ? (
+        /* CARD VIEW (First / Default) */
+        <div id="summary-list" className="space-y-1.5">
+          {displayedItems.map((item) => (
             <div
               key={item.name}
               className={`rounded-xl py-2 px-3 sm:py-2.5 sm:px-3.5 shadow-xs transition-all flex items-center justify-between gap-2.5 ${
@@ -452,7 +483,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                   <button
                     type="button"
                     onClick={() => onQuickAction(selectedPerson, item.name, 'receive')}
-                    className={`p-1.5 rounded-lg transition min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-95 shadow-2xs ${
+                    className={`p-1.5 rounded-lg transition min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-95 shadow-2xs cursor-pointer ${
                       item.isBorrowed
                         ? 'bg-rose-800 text-white hover:bg-rose-700'
                         : 'bg-emerald-100/80 text-emerald-800 hover:bg-emerald-200'
@@ -464,7 +495,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                   <button
                     type="button"
                     onClick={() => onQuickAction(selectedPerson, item.name, 'withdraw')}
-                    className={`p-1.5 rounded-lg transition min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-95 shadow-2xs ${
+                    className={`p-1.5 rounded-lg transition min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-95 shadow-2xs cursor-pointer ${
                       item.isBorrowed
                         ? 'bg-rose-800 text-white hover:bg-rose-700'
                         : 'bg-rose-100/80 text-rose-800 hover:bg-rose-200'
@@ -476,11 +507,167 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        /* TABLE VIEW (Alternative / Toggle) */
+        <div className="bg-white rounded-2xl shadow-xs border border-purple-100 overflow-hidden">
+          <div className="sm:hidden px-3 py-1.5 bg-purple-50/70 border-b border-purple-100 text-[11px] text-purple-700 font-medium flex items-center justify-between">
+            <span>👉 เลื่อนหน้าจอแนวนอนเพื่อดูตารางแบบเต็ม</span>
+            <span className="font-bold">{displayedItems.length} รายการ</span>
+          </div>
 
-      {/* Average Consumption Analysis Section (Moved below stock list) */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-gradient-to-r from-purple-50/90 via-indigo-50/50 to-purple-50/40 text-slate-700 font-bold border-b border-purple-100">
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center w-12">ลำดับ</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">รายการของใช้</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center">ยอดคงเหลือ</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center">เกณฑ์เตือน</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center">สถานะ</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap text-center">รับเข้า / เบิกออก (ด่วน)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-purple-50/80 text-slate-700">
+                {displayedItems.map((item, idx) => {
+                  const isBorrowed = item.isBorrowed;
+                  const isLow = item.isLow && !item.isBorrowed;
+                  const isBedside = item.isBedsideActive;
+
+                  return (
+                    <tr
+                      key={item.name}
+                      className={`transition-colors ${
+                        isBorrowed
+                          ? 'bg-rose-50/70 hover:bg-rose-100/70'
+                          : isLow
+                          ? 'bg-amber-50/60 hover:bg-amber-100/60'
+                          : idx % 2 === 1
+                          ? 'bg-slate-50/40 hover:bg-purple-50/50'
+                          : 'bg-white hover:bg-purple-50/50'
+                      }`}
+                    >
+                      {/* Index */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center text-slate-400 font-medium">
+                        {idx + 1}
+                      </td>
+
+                      {/* Item Name */}
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          {isBorrowed ? (
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 animate-pulse shrink-0" />
+                          ) : isLow ? (
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                          )}
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                            {item.name}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-normal">
+                            ({item.unit})
+                          </span>
+                          {item.isCustom && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium">
+                              กำหนดเอง
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Quantity Balance */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-xl text-xs sm:text-sm font-black shadow-2xs border ${
+                            isBorrowed
+                              ? 'bg-rose-600 text-white border-rose-700 animate-pulse'
+                              : isLow
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          }`}
+                        >
+                          {item.quantity} {item.unit}
+                        </span>
+                      </td>
+
+                      {/* Threshold */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center text-xs text-slate-500">
+                        {item.threshold > 0 ? (
+                          <span className="bg-slate-100 px-2 py-0.5 rounded-lg font-medium text-slate-600">
+                            ≤ {item.threshold} {item.unit}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )}
+                      </td>
+
+                      {/* Status Badge */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center">
+                        {isBorrowed ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                            <span>ยืมแผนก</span>
+                          </span>
+                        ) : isLow ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                            <span>ใกล้หมด</span>
+                          </span>
+                        ) : isBedside ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                            <Clock className="w-3.5 h-3.5 text-purple-600" />
+                            <span>เปิดใช้ข้างเตียง</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>สต็อกปกติ</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Quick Actions (Receive / Withdraw) */}
+                      <td className="py-2.5 px-3 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onQuickAction(selectedPerson, item.name, 'receive')}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-2xs transition active:scale-95 cursor-pointer"
+                            title={`รับเข้าสต็อก +1 ${item.unit}`}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>รับเข้า</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onQuickAction(selectedPerson, item.name, 'withdraw')}
+                            className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-2xs transition active:scale-95 cursor-pointer"
+                            title={`เบิกใช้งาน -1 ${item.unit}`}
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                            <span>เบิกใช้</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-2.5 bg-purple-50/40 border-t border-purple-100 flex items-center justify-between text-xs text-slate-500">
+            <span>
+              ผู้ป่วย: <strong className="text-purple-700">{selectedPerson}</strong> ({displayedItems.length} รายการของใช้)
+            </span>
+            <span className="text-[11px] text-purple-700 font-medium">ตารางสรุปยอดสต็อกเรียลไทม์</span>
+          </div>
+        </div>
+      )}
+
+      {/* Average Consumption Analysis Section */}
       {selectedPerson && (summaryData.diaperAvg || summaryData.underpadAvg) && (
         <div
           id="avg-section"

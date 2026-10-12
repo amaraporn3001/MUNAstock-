@@ -16,6 +16,7 @@ import {
   Pencil,
   Table as TableIcon,
   LayoutGrid,
+  Eraser,
 } from 'lucide-react';
 import { EditRecordModal } from './EditRecordModal';
 import { generateHistoryCSV } from '../utils/csvExportHelper';
@@ -27,6 +28,7 @@ interface HistoryTabProps {
   deletedRecordIds?: string[];
   onDeleteRequest: (record: StockRecord) => void;
   onUpdateRecord?: (record: StockRecord) => void;
+  onOpenClearHistory?: () => void;
 }
 
 export const HistoryTab: React.FC<HistoryTabProps> = ({
@@ -36,6 +38,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   deletedRecordIds = [],
   onDeleteRequest,
   onUpdateRecord,
+  onOpenClearHistory,
 }) => {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [fromDate, setFromDate] = useState<string>(todayStr);
@@ -289,8 +292,21 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
             <span className="font-medium">พบ {filteredRecords.length} รายการ</span>
+
+            {onOpenClearHistory && (
+              <button
+                type="button"
+                onClick={onOpenClearHistory}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold border border-amber-200 transition cursor-pointer shadow-2xs"
+                title="เคลียร์ประวัติเก่าเพื่อลดภาระ Firebase โดยคงยอดสต็อกเท่าเดิม"
+              >
+                <Eraser className="w-3.5 h-3.5 text-amber-600" />
+                <span>เคลียร์ประวัติ (ยอดยกมา)</span>
+              </button>
+            )}
+
             {filteredRecords.length > 0 && (
               <button
                 type="button"

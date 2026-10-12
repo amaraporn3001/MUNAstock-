@@ -15,6 +15,7 @@ import {
   UserPlus,
   User,
   Search,
+  Eraser,
 } from 'lucide-react';
 
 interface ManageModalProps {
@@ -31,6 +32,7 @@ interface ManageModalProps {
   onDeletePerson?: (personName: string) => void;
   onEditPerson?: (oldName: string, newName: string) => void;
   onResetData: () => void;
+  onOpenClearHistory?: () => void;
 }
 
 export const ManageModal: React.FC<ManageModalProps> = ({
@@ -47,6 +49,7 @@ export const ManageModal: React.FC<ManageModalProps> = ({
   onDeletePerson,
   onEditPerson,
   onResetData,
+  onOpenClearHistory,
 }) => {
   const [activeTab, setActiveTab] = useState<'items' | 'patients' | 'settings'>(initialTab);
 
@@ -732,6 +735,31 @@ export const ManageModal: React.FC<ManageModalProps> = ({
                   เพื่อให้พยาบาลและเจ้าหน้าที่ทุกเวรสามารถเรียกดูและบันทึกได้อย่างรวดเร็วและเป็นข้อมูลเดียวกัน
                 </p>
               </div>
+
+              {onOpenClearHistory && (
+                <div className="p-4 border border-amber-200 rounded-xl bg-amber-50/70 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Eraser className="w-4 h-4 text-amber-700" />
+                    <span className="font-bold text-amber-900 block text-xs sm:text-sm">
+                      เคลียร์ประวัติเก่าเพื่อลดภาระ Firebase (คงยอดคงเหลือเท่าเดิม):
+                    </span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed text-[11px]">
+                    ลบประวัติรับ/เบิกของใช้ หรือประวัติหัตถการเก่าตามวันที่และชื่อผู้ป่วยที่เลือกออกจาก Firebase โดยระบบจะตั้งยอดยกมา (Opening Balance) รองรับไว้ เพื่อให้ยอดคงเหลือในหน้าสรุปยอดเท่าเดิม 100%
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenClearHistory();
+                    }}
+                    className="px-3.5 py-2 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                  >
+                    <Eraser className="w-3.5 h-3.5" />
+                    <span>เปิดหน้าต่างเคลียร์ประวัติ (ยอดยกมา)</span>
+                  </button>
+                </div>
+              )}
 
               <div className="p-4 border border-rose-100 rounded-xl bg-rose-50/50 space-y-2">
                 <span className="font-bold text-rose-800 block">รีเซ็ตข้อมูลตัวอย่างเริ่มต้น:</span>
