@@ -16,6 +16,7 @@ import {
   Layers,
   Sparkles,
   UserPlus,
+  Clock,
 } from 'lucide-react';
 
 interface RecordTabProps {
@@ -1477,6 +1478,27 @@ export const RecordTab: React.FC<RecordTabProps> = ({
                     >
                       <Stethoscope className="w-5 h-5" />
                       <span>บันทึกข้อมูลหัตถการ</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Link to Procedure History */}
+                  <div className="pt-1 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const histProcTab = document.getElementById('tab-history-procedure');
+                        if (histProcTab) {
+                          histProcTab.click();
+                        }
+                        const histSection = document.getElementById('history-section');
+                        if (histSection) {
+                          histSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                      className="text-xs text-pink-700 hover:text-pink-900 font-semibold inline-flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-pink-50 transition cursor-pointer"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-pink-600" />
+                      <span>ดูประวัติ / เลือกลบประวัติหัตถการด้านล่าง ↓</span>
                     </button>
                   </div>
                 </div>

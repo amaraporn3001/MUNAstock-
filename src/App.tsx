@@ -33,6 +33,7 @@ import {
   deletePersonFromFirestore,
   saveAllPersonsToFirestore,
   seedInitialPersonsIfEmpty,
+  bulkClearHistoryInFirestore,
 } from './lib/firebase';
 
 export default function App() {
@@ -374,6 +375,39 @@ export default function App() {
     });
   };
 
+  // Bulk / Batch record deletion handler (removes multiple records from state, deleted IDs, and Firestore)
+  const handleBatchDeleteRecords = async (recordIds: string[]) => {
+    if (!requireOnline('ลบข้อมูลประวัติ')) return;
+    if (!recordIds || recordIds.length === 0) return;
+
+    const idSet = new Set(recordIds);
+
+    // Track confirmed deleted record IDs in state & localStorage so they are never re-rendered
+    setDeletedRecordIds((prev) => {
+      const updated = new Set(prev);
+      recordIds.forEach((id) => updated.add(id));
+      try {
+        localStorage.setItem('aging_ward_deleted_record_ids', JSON.stringify(Array.from(updated)));
+      } catch (err) {
+        console.warn('Failed saving deleted_record_ids:', err);
+      }
+      return updated;
+    });
+
+    // Optimistically remove from state
+    setRecords((prev) => prev.filter((r) => !idSet.has(r.id)));
+
+    // Persist deletion to Firestore in batches
+    try {
+      await bulkClearHistoryInFirestore(recordIds);
+    } catch (err) {
+      console.warn('Firestore batch delete failed, attempting individual deletion:', err);
+      for (const id of recordIds) {
+        deleteRecordFromFirestore(id).catch(console.warn);
+      }
+    }
+  };
+
   // Record update (edit record and persist changes to state and Firestore)
   const handleUpdateRecord = (updatedRecord: StockRecord) => {
     if (!requireOnline('แก้ไขข้อมูลประวัติ')) return;
@@ -669,6 +703,7 @@ export default function App() {
                 }}
                 onUpdateRecord={handleUpdateRecord}
                 onOpenClearHistory={() => setIsClearHistoryModalOpen(true)}
+                onBatchDeleteRecords={handleBatchDeleteRecords}
               />
             </section>
           </div>
