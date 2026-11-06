@@ -283,6 +283,33 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({
           </div>
         </div>
 
+        {/* Quick patient selector pills bar in custom order */}
+        {persons.length > 0 && (
+          <div className="pt-2 border-t border-purple-50 flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs">
+            <span className="text-[11px] font-semibold text-slate-400 shrink-0">ผู้ป่วย:</span>
+            <div className="flex items-center gap-1.5 flex-nowrap">
+              {persons.map((p) => {
+                const isSelected = selectedPerson === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => onSelectPerson(p)}
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs font-bold'
+                        : 'bg-purple-50/70 hover:bg-purple-100 text-purple-900 border border-purple-100'
+                    }`}
+                    title={`ดูสรุปสต็อกผู้ป่วย: ${p}`}
+                  >
+                    <span>{p}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {selectedPerson && (
           <div className="flex items-center justify-between border-t border-purple-50 pt-1.5 flex-wrap gap-1.5">
             <div className="flex items-center gap-1 flex-wrap">

@@ -513,6 +513,35 @@ export const RecordTab: React.FC<RecordTabProps> = ({
           )}
         </div>
 
+        {/* Quick patient selector pills bar in custom order */}
+        {persons.length > 0 && (
+          <div className="pt-2 mt-1 border-t border-purple-50 flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs">
+            <span className="text-[11px] font-semibold text-slate-400 shrink-0">
+              ผู้ป่วย:
+            </span>
+            <div className="flex items-center gap-1.5 flex-nowrap">
+              {persons.map((p) => {
+                const isSelected = selectedPerson === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => onSelectPerson(p)}
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs font-bold'
+                        : 'bg-purple-50/70 hover:bg-purple-100 text-purple-900 border border-purple-100'
+                    }`}
+                    title={`เลือกผู้ป่วย: ${p}`}
+                  >
+                    <span>{p}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {persons.length === 0 && (
           <div className="mt-2 text-xs bg-amber-50/80 text-amber-900 border border-amber-200/60 rounded-xl p-2.5 flex items-center justify-between gap-2">
             <span>ยังไม่มีรายชื่อผู้ป่วยในระบบ สามารถกดปุ่มเพื่อเพิ่มชื่อหรือเตียงผู้ป่วยได้ทันที</span>

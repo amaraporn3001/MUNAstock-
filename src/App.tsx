@@ -559,6 +559,15 @@ export default function App() {
     );
   };
 
+  const handleReorderPersons = (newOrder: string[]) => {
+    if (!requireOnline('จัดลำดับรายชื่อผู้ป่วย')) return;
+    setPersons(newOrder);
+    localStorage.setItem('aging_ward_persons', JSON.stringify(newOrder));
+    saveAllPersonsToFirestore(newOrder).catch((err) =>
+      console.warn('Save all persons to Firestore error:', err)
+    );
+  };
+
   // Staff login handler
   const handleLogin = (name: string) => {
     if (!requireOnline('เข้าสู่ระบบ')) return;
@@ -826,6 +835,7 @@ export default function App() {
         onAddPerson={handleAddPerson}
         onDeletePerson={handleDeletePerson}
         onEditPerson={handleEditPerson}
+        onReorderPersons={handleReorderPersons}
         onResetData={handleResetData}
         onOpenClearHistory={() => setIsClearHistoryModalOpen(true)}
       />

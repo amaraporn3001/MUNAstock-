@@ -16,6 +16,10 @@ import {
   User,
   Search,
   Eraser,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown,
 } from 'lucide-react';
 
 interface ManageModalProps {
@@ -31,6 +35,7 @@ interface ManageModalProps {
   onAddPerson?: (personName: string) => void;
   onDeletePerson?: (personName: string) => void;
   onEditPerson?: (oldName: string, newName: string) => void;
+  onReorderPersons?: (newPersons: string[]) => void;
   onResetData: () => void;
   onOpenClearHistory?: () => void;
 }
@@ -48,6 +53,7 @@ export const ManageModal: React.FC<ManageModalProps> = ({
   onAddPerson,
   onDeletePerson,
   onEditPerson,
+  onReorderPersons,
   onResetData,
   onOpenClearHistory,
 }) => {
@@ -81,6 +87,76 @@ export const ManageModal: React.FC<ManageModalProps> = ({
   const [editingPersonName, setEditingPersonName] = useState<string | null>(null);
   const [editPersonNewName, setEditPersonNewName] = useState('');
   const [editPersonError, setEditPersonError] = useState('');
+
+  // Drag & drop reorder states
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [reorderSuccessMsg, setReorderSuccessMsg] = useState<string | null>(null);
+
+  const showReorderNotice = (name: string) => {
+    setReorderSuccessMsg(`ย้ายลำดับ "${name}" เรียบร้อย`);
+    setTimeout(() => {
+      setReorderSuccessMsg(null);
+    }, 2500);
+  };
+
+  const movePerson = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= persons.length || toIndex >= persons.length) return;
+    const updated = [...persons];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+    if (onReorderPersons) {
+      onReorderPersons(updated);
+    }
+    showReorderNotice(moved);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', index.toString());
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = (index: number) => {
+    if (dragOverIndex === index) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetFilteredIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== targetFilteredIndex) {
+      const fromPerson = filteredPersons[draggedIndex];
+      const toPerson = filteredPersons[targetFilteredIndex];
+      if (fromPerson && toPerson) {
+        const actualFromIndex = persons.indexOf(fromPerson);
+        const actualToIndex = persons.indexOf(toPerson);
+        if (actualFromIndex !== -1 && actualToIndex !== -1) {
+          movePerson(actualFromIndex, actualToIndex);
+        }
+      }
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   if (!isOpen) return null;
 
@@ -389,11 +465,38 @@ export const ManageModal: React.FC<ManageModalProps> = ({
 
               {/* Patients List Header & Search */}
               <div className="space-y-2">
+                {/* Reorder feedback notice */}
+                {reorderSuccessMsg && (
+                  <div className="p-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center justify-between animate-in fade-in duration-150">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{reorderSuccessMsg}</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-600">บันทึกเรียบร้อย</span>
+                  </div>
+                )}
+
+                {/* Reorder guidance banner */}
+                {persons.length > 1 && !personSearch && (
+                  <div className="bg-purple-50/70 border border-purple-200/80 rounded-xl p-2 px-3 text-xs text-purple-900 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <GripVertical className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span className="truncate">
+                        คลิกลาก <strong className="font-bold">⠿</strong> เพื่อสลับจัดลำดับ หรือกดปุ่มลูกศรขึ้น-ลง
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-purple-200/80 text-purple-800 font-bold px-2 py-0.5 rounded-full shrink-0">
+                      ลำดับจะซิงค์ทันที
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 px-1">
-                  <span className="font-semibold text-slate-700">
-                    รายชื่อผู้ป่วยในระบบ ({persons.length} คน)
+                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-purple-600" />
+                    <span>รายชื่อผู้ป่วยในระบบ ({persons.length} คน)</span>
                   </span>
-                  {persons.length > 6 && (
+                  {persons.length > 5 && (
                     <div className="relative w-full sm:w-48">
                       <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
@@ -421,20 +524,42 @@ export const ManageModal: React.FC<ManageModalProps> = ({
                     </div>
                   ) : (
                     filteredPersons.map((p, index) => {
+                      const actualIndex = persons.indexOf(p);
                       const isEditing = editingPersonName === p;
+                      const isDragging = draggedIndex === index;
+                      const isDragOver = dragOverIndex === index;
+
                       return (
                         <div
                           key={p}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border transition ${
-                            isEditing
+                          draggable={!editingPersonName && !personSearch}
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragLeave={() => handleDragLeave(index)}
+                          onDrop={(e) => handleDrop(e, index)}
+                          onDragEnd={handleDragEnd}
+                          className={`flex items-center justify-between p-2 sm:p-2.5 rounded-xl border transition-all duration-150 select-none ${
+                            isDragging
+                              ? 'opacity-40 border-dashed border-purple-500 bg-purple-50 scale-[0.98]'
+                              : isDragOver
+                              ? 'border-t-4 border-t-purple-600 bg-purple-100/70 shadow-sm'
+                              : isEditing
                               ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-200'
-                              : 'bg-white border-purple-100 hover:border-purple-200'
+                              : 'bg-white border-purple-100 hover:border-purple-300 hover:shadow-xs'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
-                              {index + 1}
-                            </span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {/* Drag handle */}
+                            <div
+                              className={`p-1 text-slate-400 hover:text-purple-700 cursor-grab active:cursor-grabbing rounded transition flex items-center justify-center shrink-0 ${
+                                personSearch ? 'opacity-30 cursor-not-allowed' : ''
+                              }`}
+                              title={personSearch ? 'ล้างช่องค้นหาก่อนคลิกลากจัดลำดับ' : 'คลิกลากเพื่อเปลี่ยนลำดับ'}
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+
+                            {/* Patient name */}
                             <div className="flex items-center gap-1.5 truncate">
                               <User className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                               <span className="font-semibold text-xs sm:text-sm text-slate-800 truncate">
@@ -444,6 +569,29 @@ export const ManageModal: React.FC<ManageModalProps> = ({
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0">
+                            {/* Move Up / Down Arrow buttons */}
+                            <div className="flex items-center gap-0.5 mr-1 border-r border-purple-100 pr-1.5">
+                              <button
+                                type="button"
+                                disabled={actualIndex <= 0 || Boolean(personSearch)}
+                                onClick={() => movePerson(actualIndex, actualIndex - 1)}
+                                className="p-1 text-slate-400 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-20 disabled:hover:bg-transparent rounded transition cursor-pointer"
+                                title="ย้ายขึ้น 1 ลำดับ"
+                              >
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actualIndex >= persons.length - 1 || Boolean(personSearch)}
+                                onClick={() => movePerson(actualIndex, actualIndex + 1)}
+                                className="p-1 text-slate-400 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-20 disabled:hover:bg-transparent rounded transition cursor-pointer"
+                                title="ย้ายลง 1 ลำดับ"
+                              >
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Edit button */}
                             <button
                               type="button"
                               onClick={() => handleStartEditPerson(p)}
@@ -453,6 +601,7 @@ export const ManageModal: React.FC<ManageModalProps> = ({
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
 
+                            {/* Delete button */}
                             {onDeletePerson && (
                               <button
                                 type="button"
