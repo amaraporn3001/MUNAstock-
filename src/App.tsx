@@ -134,7 +134,8 @@ export default function App() {
             !r.is_deleted &&
             !r.deleted &&
             r.status !== 'deleted' &&
-            !isPermanentlyRemovedItem(r.item_name, r.record_type)
+            !isPermanentlyRemovedItem(r.item_name, r.record_type) &&
+            r.person_name !== 'ศรีอรุณ'
         );
       } catch {
         return [];
@@ -251,7 +252,8 @@ export default function App() {
               !r.is_deleted &&
               !r.deleted &&
               r.status !== 'deleted' &&
-              !isPermanentlyRemovedItem(r.item_name, r.record_type)
+              !isPermanentlyRemovedItem(r.item_name, r.record_type) &&
+              r.person_name !== 'ศรีอรุณ'
           );
           setRecords(validRecords);
         },
